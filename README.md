@@ -17,6 +17,8 @@ A standalone workspace overview module for Hyprland using Quickshell - shows all
 
 ![Overview Screenshot](assets/image.png)
 
+https://github.com/user-attachments/assets/79ceb141-6b9e-4956-8e09-aaf72b66550c
+
 > *Workspace overview showing live window previews with drag-and-drop support*
 
 ---
