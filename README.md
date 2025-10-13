@@ -82,7 +82,12 @@ qs -c overview &
 | **Middle-click window** | Close that window |
 | **Drag window** | Move window to different workspace |
 
+---
+
 ## ⚙️ Configuration
+
+> **⚠️ Want to change the size, position, or number of workspaces?**  
+> Edit `~/.config/quickshell/overview/common/Config.qml` - it's all there!
 
 ### Workspace Grid
 
@@ -92,8 +97,25 @@ Edit `~/.config/quickshell/overview/common/Config.qml`:
 property QtObject overview: QtObject {
     property int rows: 2        // Number of workspace rows
     property int columns: 5     // Number of workspace columns (10 total workspaces)
-    property real scale: 0.16   // Overview scale factor (smaller = more compact)
+    property real scale: 0.16   // Overview scale factor (0.1-0.3, smaller = more compact)
     property bool enable: true
+}
+```
+
+**Common adjustments:**
+- **Too small?** Increase `scale` (try 0.20 or 0.25)
+- **Too big?** Decrease `scale` (try 0.12 or 0.14)
+- **More workspaces?** Change `rows` and `columns` (e.g., 3 rows × 4 columns = 12 workspaces)
+
+### Position
+
+Edit `~/.config/quickshell/overview/modules/overview/Overview.qml` (line ~111):
+
+```qml
+anchors {
+    horizontalCenter: parent.horizontalCenter
+    top: parent.top
+    topMargin: 100  // Change this value to move up/down
 }
 ```
 
@@ -104,6 +126,8 @@ Edit `~/.config/quickshell/overview/common/Appearance.qml` to customize:
 - Font families and sizes  
 - Animation curves and durations
 - Border radius values
+
+---
 
 ## 📋 Requirements
 
@@ -172,14 +196,7 @@ qs ipc -c overview call overview close
 - Window icons may fallback to generic icon if app class name doesn't match icon theme
 - Potential crashes during rapid window state changes due to Wayland screencopy buffer management
 
-## 💡 Tips
-
-1. **Adjust scale**: If workspaces are too large or small, modify `scale` in Config.qml (default: 0.16)
-2. **More workspaces**: Increase `rows` or `columns` to show more workspaces at once
-3. **Custom colors**: Edit the `m3colors` object in Appearance.qml to match your theme
-4. **Faster animations**: Reduce duration values in `animation` objects in Appearance.qml
-
-## 🙏 Credits
+##  Credits
 
 Extracted from the overview feature in [illogical-impulse](https://github.com/end-4/dots-hyprland) by [end-4](https://github.com/end-4).
 
