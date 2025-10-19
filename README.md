@@ -206,7 +206,7 @@ Adapted as a standalone component for Hyprland + Quickshell users who want just 
 
 <div align="center">
 
-**Note:** This is a personal project shared with the community. It works well for my setup, but I'm not actively maintaining it. Feel free to fork and adapt it to your needs!
+**Note:** Maintenance will be limited due to time constraints, but **PRs and code improvements are welcome!** Feel free to contribute or fork for your own needs.
 
 Made with ❤️ for the Hyprland community
 

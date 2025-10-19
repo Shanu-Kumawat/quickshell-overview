@@ -30,15 +30,16 @@ Item { // Window
     property var iconToWindowRatio: 0.25
     property var xwaylandIndicatorToIconRatio: 0.35
     property var iconToWindowRatioCompact: 0.45
-    property var iconPath: Quickshell.iconPath(windowData?.class ?? "application-x-executable", "image-missing")
+    property var entry: DesktopEntries.heuristicLookup(windowData?.class)
+    property var iconPath: Quickshell.iconPath(entry?.icon ?? windowData?.class ?? "application-x-executable", "image-missing")
     property bool compactMode: Appearance.font.pixelSize.smaller * 4 > targetWindowHeight || Appearance.font.pixelSize.smaller * 4 > targetWindowWidth
 
     property bool indicateXWayland: windowData?.xwayland ?? false
     
     x: initX
     y: initY
-    width: (windowData?.size[0] ?? 100) * root.scale
-    height: (windowData?.size[1] ?? 100) * root.scale
+    width: Math.min((windowData?.size[0] ?? 100) * root.scale, availableWorkspaceWidth)
+    height: Math.min((windowData?.size[1] ?? 100) * root.scale, availableWorkspaceHeight)
     opacity: (windowData?.monitor ?? -1) == widgetMonitorId ? 1 : 0.4
 
     layer.enabled: true
