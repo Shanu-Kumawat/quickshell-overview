@@ -39,6 +39,20 @@ https://github.com/user-attachments/assets/9c3d2488-1c24-4cdd-84cd-87c4397d02a8
 
 ## 📦 Installation
 
+### Arch Linux (AUR)
+
+For Arch Linux users, you can install directly from the AUR:
+
+```bash
+# Using yay
+yay -S quickshell-overview-git
+
+# Using paru
+paru -S quickshell-overview-git
+```
+
+Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4 below).
+
 ### Prerequisites
 
 - **Hyprland** compositor
