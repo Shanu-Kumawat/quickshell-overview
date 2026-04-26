@@ -52,6 +52,7 @@ Item { // Window
     property bool hovered: false
     property bool pressed: false
 
+    property bool showIcons: Config.options.windowPreview.showIcons
     property var iconToWindowRatio: Config.options.windowPreview.iconToWindowRatio
     property var xwaylandIndicatorToIconRatio: Config.options.windowPreview.xwaylandIndicatorToIconRatio
     property var iconToWindowRatioCompact: Config.options.windowPreview.iconToWindowRatioCompact
@@ -169,6 +170,7 @@ Item { // Window
 
             Image {
                 id: windowIcon
+                visible: root.showIcons
                 property var iconSize: {
                     const renderedSize = Math.min(root.width, root.height);
                     return renderedSize * (root.compactMode ? root.iconToWindowRatioCompact : root.iconToWindowRatio) / (root.monitorData?.scale ?? 1);

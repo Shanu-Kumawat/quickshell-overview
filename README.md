@@ -258,6 +258,7 @@ Increase `topMargin` to move the overview down. Decrease it to move up.
 ```json
 {
   "windowPreview": {
+    "showIcons": true,
     "iconToWindowRatio": 0.25,
     "iconToWindowRatioCompact": 0.45,
     "xwaylandIndicatorToIconRatio": 0.35,
@@ -512,6 +513,7 @@ Low-memory preset:
     "topMargin": 100
   },
   "windowPreview": {
+    "showIcons": true,
     "iconToWindowRatio": 0.25,
     "iconToWindowRatioCompact": 0.45,
     "xwaylandIndicatorToIconRatio": 0.35,

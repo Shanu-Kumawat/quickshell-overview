@@ -82,6 +82,7 @@
     "topMargin": 100
   },
   "windowPreview": {
+    "showIcons": true,
     "iconToWindowRatio": 0.25,
     "iconToWindowRatioCompact": 0.45,
     "xwaylandIndicatorToIconRatio": 0.35,
