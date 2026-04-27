@@ -127,6 +127,18 @@ Item { // Window
         animation: Appearance.animation.elementMoveEnter.numberAnimation.createObject(this)
     }
 
+    // Opaque background for windows on the active monitor.
+    // The simplest solution for making those windows fully opaque and not interacting with actual
+    // windows behind the overview, e.g., applying blur to them.
+    Rectangle {
+        visible: (root.windowData?.monitor ?? -1) === root.widgetMonitorId
+        anchors.fill: parent
+        radius: Appearance.rounding.windowRounding * root.scale
+        color: root.glassMode
+            ? ColorUtils.mix(Appearance.colors.colLayer2, Appearance.colors.colLayer0, 0.38)
+            : Appearance.colors.colLayer2
+    }
+
     ScreencopyView {
         id: windowPreview
         readonly property real srcAspect: {
