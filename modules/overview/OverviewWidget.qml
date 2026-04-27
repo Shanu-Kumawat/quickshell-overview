@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -459,6 +460,7 @@ Item {
                                 : "transparent"
 
                             Image {
+                                id: workspaceWallpaper
                                 visible: workspace.showWallpaper
                                 anchors.fill: parent
                                 source: root.wallpaperSource(root.emptyWorkspaceWallpaperPath)
@@ -467,6 +469,26 @@ Item {
                                 cache: true
                                 smooth: true
                                 mipmap: true
+                                layer.enabled: workspace.showWallpaper
+                                layer.smooth: true
+                                layer.effect: MultiEffect {
+                                    maskEnabled: true
+                                    maskSource: workspaceWallpaperMask
+                                    maskThresholdMin: 0.5
+                                    maskSpreadAtMin: 1.0
+                                }
+                            }
+
+                            Item {
+                                id: workspaceWallpaperMask
+                                anchors.fill: parent
+                                visible: false
+                                layer.enabled: true
+                                layer.smooth: true
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: workspace.radius
+                                }
                             }
 
                             Rectangle {
