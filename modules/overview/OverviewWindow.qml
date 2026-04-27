@@ -100,6 +100,12 @@ Item { // Window
     width: Math.min(targetWindowWidth, availableWorkspaceWidth)
     height: Math.min(targetWindowHeight, availableWorkspaceHeight)
     opacity: (windowData?.monitor ?? -1) == widgetMonitorId ? 1 : Config.options.windowPreview.inactiveMonitorOpacity
+    visible: {
+        const thisWsId = windowData?.workspace?.id;
+        const isFullscreen = (windowData?.fullscreen ?? 0) > 0;
+        if (isFullscreen || thisWsId === undefined) return true;
+        return !HyprlandData.windowList.some(w => w.workspace?.id === thisWsId && (w.fullscreen ?? 0) > 0);
+    }
 
     clip: true
     Component.onCompleted: Qt.callLater(() => root.initialized = true)
