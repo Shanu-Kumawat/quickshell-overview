@@ -29,12 +29,12 @@ Item {
     property real scale: Config.options.overview.scale
     property color activeBorderColor: Appearance.colors.colSecondary
 
-    property real workspaceImplicitWidth: (monitorData?.transform % 2 === 1) ?
+    property real workspaceImplicitWidth: Math.round((monitorData?.transform % 2 === 1) ?
         ((monitor.height / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) :
-        ((monitor.width / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale)
-    property real workspaceImplicitHeight: (monitorData?.transform % 2 === 1) ?
+        ((monitor.width / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale))
+    property real workspaceImplicitHeight: Math.round((monitorData?.transform % 2 === 1) ?
         ((monitor.width / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale) :
-        ((monitor.height / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale)
+        ((monitor.height / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale))
 
     property real workspaceNumberMargin: 80
     property real workspaceNumberSize: Config.options.overview.workspaceNumberBaseSize * monitor.scale

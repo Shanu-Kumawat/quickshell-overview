@@ -262,10 +262,13 @@ Increase `topMargin` to move the overview down. Decrease it to move up.
     "iconToWindowRatio": 0.25,
     "iconToWindowRatioCompact": 0.45,
     "xwaylandIndicatorToIconRatio": 0.35,
-    "inactiveMonitorOpacity": 0.4
+    "inactiveMonitorOpacity": 0.4,
+    "cropToFill": false
   }
 }
 ```
+
+- `cropToFill`: crop full-screen windows to fill the workspace preview when `true`; keep the full window in preview with possible horizontal/vertical "padding" bars when `false`
 
 ### Performance Tuning
 
@@ -517,7 +520,8 @@ Low-memory preset:
     "iconToWindowRatio": 0.25,
     "iconToWindowRatioCompact": 0.45,
     "xwaylandIndicatorToIconRatio": 0.35,
-    "inactiveMonitorOpacity": 0.4
+    "inactiveMonitorOpacity": 0.4,
+    "cropToFill": false
   },
   "hacks": {
     "arbitraryRaceConditionDelay": 150,

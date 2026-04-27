@@ -86,7 +86,8 @@
     "iconToWindowRatio": 0.25,
     "iconToWindowRatioCompact": 0.45,
     "xwaylandIndicatorToIconRatio": 0.35,
-    "inactiveMonitorOpacity": 0.4
+    "inactiveMonitorOpacity": 0.4,
+    "cropToFill": false
   },
   "hacks": {
     "arbitraryRaceConditionDelay": 150,

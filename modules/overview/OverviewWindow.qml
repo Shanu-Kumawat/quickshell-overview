@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import "../../common"
@@ -56,6 +57,7 @@ Item { // Window
     property var iconToWindowRatio: Config.options.windowPreview.iconToWindowRatio
     property var xwaylandIndicatorToIconRatio: Config.options.windowPreview.xwaylandIndicatorToIconRatio
     property var iconToWindowRatioCompact: Config.options.windowPreview.iconToWindowRatioCompact
+    property bool cropToFill: Config.options.windowPreview.cropToFill
     property bool previewsEnabled: Config.options.overview.previewsEnabled
     property bool includeInactiveMonitorPreviews: Config.options.overview.includeInactiveMonitorPreviews
     property int previewRecaptureDelayMs: Config.options.overview.previewRecaptureDelayMs
@@ -121,45 +123,64 @@ Item { // Window
 
     ScreencopyView {
         id: windowPreview
-        anchors.fill: parent
+        readonly property real srcAspect: {
+            const w = root.windowData?.size?.[0] ?? 0;
+            const h = root.windowData?.size?.[1] ?? 0;
+            return (w > 0 && h > 0) ? (w / h) : 1;
+        }
+        anchors.centerIn: parent
+        width: root.cropToFill
+            ? Math.max(parent.width, parent.height * srcAspect)
+            : Math.min(parent.width, parent.height * srcAspect)
+        height: root.cropToFill
+            ? Math.max(parent.height, parent.width / srcAspect)
+            : Math.min(parent.height, parent.width / srcAspect)
         captureSource: shouldCapturePreview ? root.toplevel : null
         live: livePreviewEnabled
+        layer.enabled: true
+        layer.smooth: true
+        layer.effect: MultiEffect {
+            maskEnabled: true
+            maskSource: previewMask
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1.0
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: Appearance.rounding.windowRounding * root.scale
+        color: pressed ? ColorUtils.applyAlpha(Appearance.colors.colLayer2Active, Math.min(1, root.effectiveWindowOverlayOpacity + 0.30)) :
+            hovered ? ColorUtils.applyAlpha(Appearance.colors.colLayer2Hover, Math.min(1, root.effectiveWindowOverlayOpacity + 0.20)) :
+            ColorUtils.applyAlpha(
+                root.glassMode ? ColorUtils.mix(Appearance.colors.colLayer2, Appearance.colors.colLayer0, 0.38) : Appearance.colors.colLayer2,
+                root.effectiveWindowOverlayOpacity
+            )
+        border.color: root.glassMode
+            ? ColorUtils.applyAlpha(Appearance.m3colors.m3outline, 0.62)
+            : ColorUtils.transparentize(Appearance.m3colors.m3outline, 0.7)
+        border.width: 1
 
         Rectangle {
+            visible: root.glassMode
             anchors.fill: parent
-            radius: Appearance.rounding.windowRounding * root.scale
-            color: pressed ? ColorUtils.applyAlpha(Appearance.colors.colLayer2Active, Math.min(1, root.effectiveWindowOverlayOpacity + 0.30)) :
-                hovered ? ColorUtils.applyAlpha(Appearance.colors.colLayer2Hover, Math.min(1, root.effectiveWindowOverlayOpacity + 0.20)) :
-                ColorUtils.applyAlpha(
-                    root.glassMode ? ColorUtils.mix(Appearance.colors.colLayer2, Appearance.colors.colLayer0, 0.38) : Appearance.colors.colLayer2,
-                    root.effectiveWindowOverlayOpacity
-                )
-            border.color : root.glassMode
-                ? ColorUtils.applyAlpha(Appearance.m3colors.m3outline, 0.62)
-                : ColorUtils.transparentize(Appearance.m3colors.m3outline, 0.7)
-            border.width : 1
-
-            Rectangle {
-                visible: root.glassMode
-                anchors.fill: parent
-                radius: parent.radius
-                color: "transparent"
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: ColorUtils.applyAlpha("#FFFFFF", root.glassShineOpacity * 0.24) }
-                    GradientStop { position: 0.5; color: ColorUtils.applyAlpha("#FFFFFF", 0.0) }
-                    GradientStop { position: 1.0; color: ColorUtils.applyAlpha("#000000", root.glassShineOpacity * 0.14) }
-                }
+            radius: parent.radius
+            color: "transparent"
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: ColorUtils.applyAlpha("#FFFFFF", root.glassShineOpacity * 0.24) }
+                GradientStop { position: 0.5; color: ColorUtils.applyAlpha("#FFFFFF", 0.0) }
+                GradientStop { position: 1.0; color: ColorUtils.applyAlpha("#000000", root.glassShineOpacity * 0.14) }
             }
+        }
 
-            Rectangle {
-                visible: root.glassMode
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: Math.max(parent.radius - 1, 0)
-                color: "transparent"
-                border.width: 1
-                border.color: ColorUtils.applyAlpha("#FFFFFF", root.glassShineOpacity * 0.32)
-            }
+        Rectangle {
+            visible: root.glassMode
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: Math.max(parent.radius - 1, 0)
+            color: "transparent"
+            border.width: 1
+            border.color: ColorUtils.applyAlpha("#FFFFFF", root.glassShineOpacity * 0.32)
         }
 
         ColumnLayout {
@@ -181,6 +202,22 @@ Item { // Window
                 height: iconSize
                 sourceSize: Qt.size(Math.max(1, Math.round(iconSize)), Math.max(1, Math.round(iconSize)))
             }
+        }
+    }
+
+    Item {
+        id: previewMask
+        width: windowPreview.width
+        height: windowPreview.height
+        anchors.centerIn: parent
+        visible: false
+        layer.enabled: true
+        layer.smooth: true
+        Rectangle {
+            anchors.centerIn: parent
+            width: root.width
+            height: root.height
+            radius: Appearance.rounding.windowRounding * root.scale
         }
     }
 
