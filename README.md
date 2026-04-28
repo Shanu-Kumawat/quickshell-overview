@@ -409,8 +409,8 @@ Stronger glass preset:
 For Hyprland blur, add layer rules (example):
 
 ```ini
-layerrule = blur, quickshell:overview-blur
-layerrule = ignorealpha 0.2, quickshell:overview-blur
+layerrule = blur true, match:namespace quickshell:overview-blur
+layerrule = ignore_alpha 0.2, match:namespace quickshell:overview-blur
 ```
 
 If `enableBlur` is `false`, namespace remains `quickshell:overview`.
