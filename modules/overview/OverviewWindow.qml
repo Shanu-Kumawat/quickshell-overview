@@ -78,7 +78,10 @@ Item { // Window
             return true;
         return (windowData?.monitor ?? -1) === widgetMonitorId;
     }
-    property var entry: DesktopEntries.heuristicLookup(windowData?.class)
+    property var entry: {
+        DesktopEntries.applications.values; // re-run when the entry index updates
+        return DesktopEntries.heuristicLookup(windowData?.class);
+    }
     property string iconName: {
         const raw = `${entry?.icon ?? ""}`.trim();
         const withoutProviderPrefix = raw.replace(/^image:\/\/icon\//, "");
