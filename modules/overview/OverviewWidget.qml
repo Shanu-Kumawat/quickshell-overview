@@ -202,7 +202,11 @@ Item {
         } else if (targetId > maxWorkspaceId) {
             targetId = minWorkspaceId;
         }
-        Hyprland.dispatch(`workspace ${targetId}`);
+        if (HyprlandData.isModern) {
+            Hyprland.dispatch(`hl.dsp.focus({workspace = '${targetId}})'`);
+        } else {
+            Hyprland.dispatch(`workspace ${targetId}`);
+        }
     }
 
     function isSpecialWorkspace(windowData) {
@@ -548,7 +552,11 @@ Item {
                                 onClicked: {
                                     if (root.draggingTargetWorkspace === -1) {
                                         GlobalStates.overviewOpen = false
-                                        Hyprland.dispatch(`workspace ${workspaceValue}`)
+                                        if (HyprlandData.isModern) {
+                                            Hyprland.dispatch(`hl.dsp.focus({workspace = ${workspaceValue}})`);
+                                        } else {
+                                            Hyprland.dispatch(`workspace ${workspaceValue}`)
+                                        }
                                     }
                                 }
                             }
@@ -689,7 +697,11 @@ Item {
                                     onClicked: {
                                         if (root.draggingTargetWorkspace === -1 && !root.draggingTargetSpecialWorkspace) {
                                             GlobalStates.overviewOpen = false;
-                                            Hyprland.dispatch(`togglespecialworkspace ${specialWorkspaceTile.specialName}`);
+                                            if (HyprlandData.isModern) {
+                                                Hyprland.dispatch(`hl.dsp.workspace.toggle_special(${specialWorkspaceTile.specialName})`);
+                                            } else {
+                                                Hyprland.dispatch(`togglespecialworkspace ${specialWorkspaceTile.specialName}`);
+                                            }
                                         }
                                     }
                                 }
@@ -806,19 +818,34 @@ Item {
                                                     root.draggingTargetSpecialWorkspace = ""
                                                     if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                                         const createdName = root.nextSpecialWorkspaceName()
-                                                        Hyprland.dispatch(`movetoworkspacesilent special:${createdName}, address:${specialWindow.windowData?.address}`)
+                                                        //INFO: From special TO NEW special
+                                                        if (HyprlandData.isModern) {
+                                                            Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${createdName}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
+                                                        } else {
+                                                            Hyprland.dispatch(`movetoworkspacesilent special:${createdName}, address:${specialWindow.windowData?.address}`)
+                                                        }
                                                         specialWindow.returnToHomeParent()
                                                         specialWindow.x = specialWindow.initX
                                                         specialWindow.y = specialWindow.initY
                                                     }
                                                     else if (targetSpecialWorkspace && targetSpecialWorkspace !== specialWorkspaceTile.specialName) {
-                                                        Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${specialWindow.windowData?.address}`)
+                                                        // Idk
+                                                        if (HyprlandData.isModern) {
+                                                            Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
+                                                        } else {
+                                                            Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${specialWindow.windowData?.address}`)
+                                                        }
                                                         specialWindow.returnToHomeParent()
                                                         specialWindow.x = specialWindow.initX
                                                         specialWindow.y = specialWindow.initY
                                                     }
                                                     else if (targetWorkspace !== -1) {
-                                                        Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${specialWindow.windowData?.address}`)
+                                                        //INFO: From Special TO Normal workspace
+                                                        if (HyprlandData.isModern) {
+                                                            Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
+                                                        } else {
+                                                            Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${specialWindow.windowData?.address}`)
+                                                        }
                                                         specialWindow.returnToHomeParent()
                                                         specialWindow.x = specialWindow.initX
                                                         specialWindow.y = specialWindow.initY
@@ -834,10 +861,18 @@ Item {
                                                         return;
                                                     if (event.button === Qt.LeftButton) {
                                                         GlobalStates.overviewOpen = false;
-                                                        Hyprland.dispatch(`focuswindow address:${windowData.address}`);
+                                                        if (HyprlandData.isModern) {
+                                                            Hyprland.dispatch(`hl.dsp.focus({ window = 'address:${windowData.address}' })`);
+                                                        } else {
+                                                            Hyprland.dispatch(`focuswindow address:${windowData.address}`);
+                                                        }
                                                         event.accepted = true;
                                                     } else if (event.button === Qt.MiddleButton) {
-                                                        Hyprland.dispatch(`closewindow address:${windowData.address}`);
+                                                        if (HyprlandData.isModern) {
+                                                            Hyprland.dispatch(`hl.dsp.window.close({window = 'address:${windowData.address}'})`);
+                                                        } else {
+                                                            Hyprland.dispatch(`closewindow address:${windowData.address}`);
+                                                        }
                                                         event.accepted = true;
                                                     }
                                                 }
@@ -928,7 +963,11 @@ Item {
                                 onClicked: {
                                     const createdName = root.nextSpecialWorkspaceName();
                                     GlobalStates.overviewOpen = false;
-                                    Hyprland.dispatch(`togglespecialworkspace ${createdName}`);
+                                    if (HyprlandData.isModern) {
+                                        Hyprland.dispatch(`hl.dsp.workspace.toggle_special('${createdName}')`);
+                                    } else {
+                                        Hyprland.dispatch(`togglespecialworkspace ${createdName}`);
+                                    }
                                 }
                             }
 
@@ -1067,15 +1106,30 @@ Item {
                             root.draggingTargetSpecialWorkspace = ""
                             if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                 const createdName = root.nextSpecialWorkspaceName()
-                                Hyprland.dispatch(`movetoworkspacesilent special:${createdName}, address:${window.windowData?.address}`)
+                                //INFO: From normal TO special
+                                if (HyprlandData.isModern) {
+                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${createdName}', follow = false, window = 'address:${window.windowData?.address}'})`);
+                                } else {
+                                    Hyprland.dispatch(`movetoworkspacesilent special:${createdName}, address:${window.windowData?.address}`)
+                                }
                                 updateWindowPosition.restart()
                             }
                             else if (targetSpecialWorkspace && targetSpecialWorkspace !== root.specialWorkspaceName(windowData)) {
-                                Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${window.windowData?.address}`)
+                                // Idk
+                                if (HyprlandData.isModern) {
+                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
+                                } else {
+                                    Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${window.windowData?.address}`)
+                                }
                                 updateWindowPosition.restart()
                             }
                             else if (targetWorkspace !== -1 && targetWorkspace !== windowData?.workspace.id) {
-                                Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${window.windowData?.address}`)
+                                //INFO: From normal TO normal
+                                if (HyprlandData.isModern) {
+                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
+                                } else {
+                                    Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${window.windowData?.address}`)
+                                }
                                 updateWindowPosition.restart()
                             }
                             else {
@@ -1088,10 +1142,18 @@ Item {
 
                             if (event.button === Qt.LeftButton) {
                                 GlobalStates.overviewOpen = false
-                                Hyprland.dispatch(`focuswindow address:${windowData.address}`)
+                                if (HyprlandData.isModern) {
+                                    Hyprland.dispatch(`hl.dsp.focus({ window = 'address:${windowData.address}' })`);
+                                } else {
+                                    Hyprland.dispatch(`focuswindow address:${windowData.address}`)
+                                }
                                 event.accepted = true
                             } else if (event.button === Qt.MiddleButton) {
-                                Hyprland.dispatch(`closewindow address:${windowData.address}`)
+                                if (HyprlandData.isModern) {
+                                    Hyprland.dispatch(`hl.dsp.window.close({window = 'address:${windowData.address}'})`);
+                                } else {
+                                    Hyprland.dispatch(`closewindow address:${windowData.address}`)
+                                }
                                 event.accepted = true
                             }
                         }

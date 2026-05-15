@@ -204,7 +204,11 @@ Scope {
 
                     if (targetId !== null) {
                         const clampedTarget = Math.max(minWorkspaceId, Math.min(maxWorkspaceId, targetId));
-                        Hyprland.dispatch("workspace " + clampedTarget);
+			if (HyprlandData.isModern) {
+				Hyprland.dispatch(`hl.dsp.focus({workspace = '${clampedTarget}'})`);
+			} else {
+				Hyprland.dispatch("workspace " + clampedTarget);
+			}
                         event.accepted = true;
                     }
                 }
