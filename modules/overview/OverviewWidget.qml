@@ -203,7 +203,7 @@ Item {
             targetId = minWorkspaceId;
         }
         if (Hyprland.usingLua) {
-            Hyprland.dispatch(`hl.dsp.focus({workspace = '${targetId}})'`);
+            Hyprland.dispatch(`hl.dsp.focus({workspace = '${targetId}'})`);
         } else {
             Hyprland.dispatch(`workspace ${targetId}`);
         }
@@ -553,7 +553,7 @@ Item {
                                     if (root.draggingTargetWorkspace === -1) {
                                         GlobalStates.overviewOpen = false
                                         if (Hyprland.usingLua) {
-                                            Hyprland.dispatch(`hl.dsp.focus({workspace = ${workspaceValue}})`);
+                                            Hyprland.dispatch(`hl.dsp.focus({workspace = '${workspaceValue}'})`);
                                         } else {
                                             Hyprland.dispatch(`workspace ${workspaceValue}`)
                                         }
@@ -698,7 +698,7 @@ Item {
                                         if (root.draggingTargetWorkspace === -1 && !root.draggingTargetSpecialWorkspace) {
                                             GlobalStates.overviewOpen = false;
                                             if (Hyprland.usingLua) {
-                                                Hyprland.dispatch(`hl.dsp.workspace.toggle_special(${specialWorkspaceTile.specialName})`);
+                                                Hyprland.dispatch(`hl.dsp.workspace.toggle_special('${specialWorkspaceTile.specialName}')`);
                                             } else {
                                                 Hyprland.dispatch(`togglespecialworkspace ${specialWorkspaceTile.specialName}`);
                                             }
@@ -869,7 +869,7 @@ Item {
                                                         event.accepted = true;
                                                     } else if (event.button === Qt.MiddleButton) {
                                                         if (Hyprland.usingLua) {
-                                                            Hyprland.dispatch(`hl.dsp.window.close({window = 'address:${windowData.address}'})`);
+                                                            Hyprland.dispatch(`hl.dsp.window.close('address:${windowData.address}')`);
                                                         } else {
                                                             Hyprland.dispatch(`closewindow address:${windowData.address}`);
                                                         }
@@ -1150,7 +1150,7 @@ Item {
                                 event.accepted = true
                             } else if (event.button === Qt.MiddleButton) {
                                 if (Hyprland.usingLua) {
-                                    Hyprland.dispatch(`hl.dsp.window.close({window = 'address:${windowData.address}'})`);
+                                    Hyprland.dispatch(`hl.dsp.window.close('address:${windowData.address}')`);
                                 } else {
                                     Hyprland.dispatch(`closewindow address:${windowData.address}`)
                                 }
