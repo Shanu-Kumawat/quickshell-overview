@@ -81,17 +81,31 @@ Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4
    ```
    - **AUR package:** use the command above (`yay -S quickshell-overview-git` or `paru -S ...`)
 
-2. **Add keybind** to your Hyprland config (`~/.config/hypr/hyprland.conf`):
+2. **Add keybind** to your Hyprland config:
+
+   *For Hyprland 0.55+ (`~/.config/hypr/hyprland.lua`):*
+   ```lua
+   hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview toggle"))
+   ```
+   *For Hyprland 0.54 and older (`~/.config/hypr/hyprland.conf`):*
    ```conf
    bind = Super, TAB, exec, qs ipc -c overview call overview toggle
    ```
 
-3. **Auto-start** the overview (add to Hyprland config):
+4. **Auto-start** the overview (add to Hyprland config):
+
+   *For Hyprland 0.55+ (`~/.config/hypr/hyprland.lua`):*
+   ```lua
+   hl.on("hyprland.start", function () 
+       hl.exec_cmd("qs -c overview")
+   end)
+   ```
+   *For Hyprland 0.54 and older (`~/.config/hypr/hyprland.conf`):*
    ```conf
    exec-once = qs -c overview
    ```
 
-4. **Reload Hyprland**:
+6. **Reload Hyprland**:
    ```bash
    hyprctl reload
    ```
