@@ -182,6 +182,20 @@ Item {
         return (workspaceGroup * workspacesShown) + (mappedRow * Config.options.overview.columns) + mappedCol + 1 + workspaceOffset;
     }
 
+    function getVisibleRowPosition(rowIndex) {
+        if (!Number.isFinite(rowIndex) || rowIndex < 0)
+            return 0;
+        if (!Config.options.overview.hideEmptyRows || !(rowsWithContent instanceof Set))
+            return rowIndex;
+
+        let visibleRow = 0;
+        for (let i = 0; i < rowIndex; i += 1) {
+            if (rowsWithContent.has(i))
+                visibleRow += 1;
+        }
+        return visibleRow;
+    }
+
     function stepWorkspace(delta) {
         if (!Number.isFinite(delta) || delta === 0)
             return;
@@ -1062,8 +1076,9 @@ Item {
 
                     property int workspaceColIndex: root.getWorkspaceColumn(windowData?.workspace.id)
                     property int workspaceRowIndex: root.getWorkspaceRow(windowData?.workspace.id)
+                    property int visibleWorkspaceRowIndex: root.getVisibleRowPosition(workspaceRowIndex)
                     xOffset: (root.workspaceImplicitWidth + workspaceSpacing) * workspaceColIndex
-                    yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * workspaceRowIndex
+                    yOffset: (root.workspaceImplicitHeight + workspaceSpacing) * visibleWorkspaceRowIndex
 
                     Timer {
                         id: updateWindowPosition
@@ -1170,9 +1185,10 @@ Item {
             Rectangle { // Focused workspace indicator
                 id: focusedWorkspaceIndicator
                 property int activeWorkspaceRowIndex: root.getWorkspaceRow(root.effectiveActiveWorkspaceId)
+                property int visibleActiveWorkspaceRowIndex: root.getVisibleRowPosition(activeWorkspaceRowIndex)
                 property int activeWorkspaceColIndex: root.getWorkspaceColumn(root.effectiveActiveWorkspaceId)
                 x: (root.workspaceImplicitWidth + workspaceSpacing) * activeWorkspaceColIndex
-                y: (root.workspaceImplicitHeight + workspaceSpacing) * activeWorkspaceRowIndex
+                y: (root.workspaceImplicitHeight + workspaceSpacing) * visibleActiveWorkspaceRowIndex
                 z: root.windowDraggingZ - 1
                 width: root.workspaceImplicitWidth
                 height: root.workspaceImplicitHeight
