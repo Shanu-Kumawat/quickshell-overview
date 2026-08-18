@@ -1,14 +1,18 @@
 import QtQuick
-import QtQuick.Effects
 import ".."
 
-RectangularShadow {
+Item {
+    id: root
+
     required property var target
     anchors.fill: target
-    radius: 20
-    blur: 0.9 * Appearance.sizes.elevationMargin
-    offset: Qt.vector2d(0.0, 1.0)
-    spread: 1
-    color: Appearance.colors.colShadow
-    cached: true
+
+    Loader {
+        id: shadowLoader
+        anchors.fill: parent
+        active: EffectsSupport.effectsAvailable
+        source: "StyledRectangularShadowEffects.qml"
+
+        onLoaded: item.target = root.target
+    }
 }

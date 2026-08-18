@@ -2,3 +2,4 @@ StyledText 1.0 StyledText.qml
 StyledRectangularShadow 1.0 StyledRectangularShadow.qml
 StyledToolTip 1.0 StyledToolTip.qml
 StyledToolTipContent 1.0 StyledToolTipContent.qml
+RoundedMask 1.0 RoundedMask.qml

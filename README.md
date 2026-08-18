@@ -72,6 +72,8 @@ Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4
 - **Quickshell** ([installation guide](https://quickshell.org/docs/v0.1.0/guide/install-setup/))
 - **Qt 6** with modules: QtQuick, QtQuick.Controls
 
+> **Note:** On older Quickshell builds that lack the Qt6-only `QtQuick.Effects` module (e.g. Quickshell 0.3.0 built against Qt5), the overview still works — the panel drop shadow and rounded window/wallpaper previews are automatically disabled.
+
 ### Setup
 
 1. **Install module files** (choose one):
