@@ -41,42 +41,30 @@
       "elevationMargin": 10
     }
   },
-  "overview": {
-    "rows": 2,
-    "columns": 5,
-    "scale": 0.16,
+  "switcher": {
+    "style": "icons",
     "enable": true,
-    "hideEmptyRows": true,
-    "closeOnFocusLoss": true,
-    "useWorkspaceMap": false,
-    "workspaceMap": [0, 10],
-    "orderRightLeft": false,
-    "orderBottomUp": false,
+    "tileSize": 96,
+    "tileSpacing": 12,
+    "showTitle": true,
     "previewsEnabled": true,
     "previewMode": "live",
-    "includeInactiveMonitorPreviews": true,
     "previewRecaptureDelayMs": 60,
-    "showSpecialWorkspaces": true,
-    "specialWorkspaces": [],
-    "specialWorkspaceColumns": 5,
-    "emptyWorkspaceWallpaper": "",
-    "specialEmptyWorkspaceWallpaper": "",
+    "includeInactiveMonitorPreviews": true,
+    "includeSpecialWorkspaces": true,
+    "closeOnFocusLoss": true,
+    "backgroundPadding": 16,
     "effects": {
       "enableBackdrop": false,
       "backdropOpacity": 0.28,
       "panelOpacity": 0.92,
-      "workspaceOpacity": 0.86,
-      "emptyWorkspaceWallpaperOverlayOpacity": 0.18,
       "windowOverlayOpacity": 0.22,
       "enableBlur": false,
       "glassMode": false,
       "glassTintStrength": 0.35,
       "glassBorderOpacity": 0.72,
       "glassShineOpacity": 0.14
-    },
-    "workspaceSpacing": 5,
-    "backgroundPadding": 10,
-    "workspaceNumberBaseSize": 250
+    }
   },
   "position": {
     "topMargin": 100

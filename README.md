@@ -1,48 +1,35 @@
-# Quickshell Overview for Hyprland
+# Quickshell Window Switcher for Hyprland
 
 <div align="center">
 
-A standalone workspace overview module for Hyprland using Quickshell - shows all workspaces with live window previews, drag-and-drop support, and Super+Tab keybind.
+A macOS `⌘-Tab`-style window switcher for Hyprland using Quickshell — hold Super and tap Tab to cycle through your running apps, release Super to focus the one you land on. Monitor- and workspace-agnostic.
 
 ![Quickshell](https://img.shields.io/badge/Quickshell-0.2.0-blue?style=flat-square)
 ![Hyprland](https://img.shields.io/badge/Hyprland-Compatible-purple?style=flat-square)
 ![Qt6](https://img.shields.io/badge/Qt-6-green?style=flat-square)
 ![License](https://img.shields.io/badge/License-GPL-orange?style=flat-square)
 
-
 </div>
-
----
-
-## 📸 Preview
-
-![Overview Screenshot](assets/image.png)
-
-https://github.com/user-attachments/assets/e8f392d7-d831-4dec-9cd3-fb93d1ccc21c
-
-> *Workspace overview showing live window previews with drag-and-drop support*
 
 ---
 
 ## ✨ Features
 
-- 🖼️ Visual workspace overview showing all workspaces and windows
-- 🖥️ Multi-monitor support with proper scaling and vertical/rotated monitors [in experimental branch]
-- 📐 Smart row hiding - optionally hide empty workspace rows
-- 🎯 Click windows to focus them
-- 🖱️ Middle-click windows to close them  
-- 🔄 Drag and drop windows between workspaces
-- ⌨️ Keyboard navigation (Arrow keys, vim keys, number shortcuts)
-- 🖱️ Auto-close on focus loss / outside click
-- 💡 Hover tooltips showing window information
-- 🎨 Material Design 3 theming
-- ⚡ Smooth animations and transitions
+- ⌨️ **macOS `⌘-Tab` behavior** — `Super + Tab` opens the switcher; keep Super held and tap Tab to cycle apps; release Super to focus the selection.
+- 🔁 **Backward cycling** — `Super + Shift + Tab` walks the list in reverse.
+- 🧠 **MRU ordering** — windows are ordered most-recently-used, so the first tap always lands on your previous window (just like macOS).
+- 🪟 **One tile per window** — every open window is its own switch target (Alt-Tab style); the selected window's title shows beneath the row.
+- 🖥️ **Monitor- and workspace-agnostic** — every window is a candidate no matter which monitor or workspace it lives on. Confirming jumps you straight to it.
+- 🎨 **Three presentation styles** — `icons`, `thumbnails`, or `hybrid`, selectable in config.
+- 🫥 **Special/scratchpad windows included** — optional, on by default.
+- 🖱️ **Mouse support** — hover to select, click to focus, middle-click to close an app's window.
+- 💎 **Material Design 3 theming** with optional transparency/blur.
+
+---
 
 ## 📦 Installation
 
 ### Arch Linux (AUR)
-
-For Arch Linux users, you can install directly from the AUR:
 
 ```bash
 # Using yay
@@ -64,13 +51,15 @@ Put your custom settings in:
 ~/.config/quickshell/overview/config.json
 ```
 
-Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4 below).
+Then add the keybinds and auto-start to your Hyprland config (see Setup below).
+
+> **Note:** the config/IPC name is still `overview` (the directory and `qs -c overview` handle) for install-path compatibility, even though the tool is now a window switcher.
 
 ### Prerequisites
 
 - **Hyprland** compositor
 - **Quickshell** ([installation guide](https://quickshell.org/docs/v0.1.0/guide/install-setup/))
-- **Qt 6** with modules: QtQuick, QtQuick.Controls
+- **Qt 6** with modules: QtQuick, QtQuick.Controls, QtQuick.Layouts
 
 ### Setup
 
@@ -81,22 +70,32 @@ Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4
    ```
    - **AUR package:** use the command above (`yay -S quickshell-overview-git` or `paru -S ...`)
 
-2. **Add keybind** to your Hyprland config:
+2. **Add keybinds** to your Hyprland config.
+
+   The switcher uses a single "open" keybind per direction; once it is
+   showing, it grabs the keyboard itself and handles further Tab / Shift+Tab
+   / Escape presses and the Super release.
 
    *For Hyprland 0.55+ (`~/.config/hypr/hyprland.lua`):*
    ```lua
-   hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview toggle"))
+   -- Open forward (hold Super, tap Tab to keep cycling)
+   hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview open"))
+   -- Open backward (hold Super+Shift, tap Tab to keep cycling)
+   hl.bind("SUPER + SHIFT + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview prev"))
    ```
    *For Hyprland 0.54 and older (`~/.config/hypr/hyprland.conf`):*
    ```conf
-   bind = Super, TAB, exec, qs ipc -c overview call overview toggle
+   # Open forward (hold Super, tap Tab to keep cycling)
+   bind = SUPER, Tab, exec, qs ipc -c overview call overview open
+   # Open backward (hold Super+Shift, tap Tab to keep cycling)
+   bind = SUPER SHIFT, Tab, exec, qs ipc -c overview call overview prev
    ```
 
-4. **Auto-start** the overview (add to Hyprland config):
+3. **Auto-start** the switcher (add to Hyprland config):
 
    *For Hyprland 0.55+ (`~/.config/hypr/hyprland.lua`):*
    ```lua
-   hl.on("hyprland.start", function () 
+   hl.on("hyprland.start", function ()
        hl.exec_cmd("qs -c overview")
    end)
    ```
@@ -105,10 +104,37 @@ Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4
    exec-once = qs -c overview
    ```
 
-6. **Reload Hyprland**:
+4. **Reload Hyprland**:
    ```bash
    hyprctl reload
    ```
+
+### How the keybind works (and the fast-tap edge case)
+
+The switcher follows the "single keybind + keyboard grab" model:
+
+1. `Super + Tab` runs one IPC command that opens the switcher.
+2. The switcher's layer surface takes an **exclusive keyboard grab** the
+   instant it maps, so every subsequent `Tab` (forward), `Shift + Tab`
+   (backward), `Escape` (cancel), and the eventual **Super release**
+   (confirm + focus) is handled inside the switcher — no extra keybinds
+   needed.
+
+**Edge case — very fast tap-and-release:** if you tap `Super + Tab` and
+release Super *extremely* quickly, the release can out-race the surface
+map, so the switcher never sees the release and can stay open. If you hit
+this, either press `Escape`/`Enter` to dismiss it, or add the optional
+safety net below, which confirms on Super release via IPC. It is a no-op
+whenever the switcher isn't open, so it's safe to leave on:
+
+*Hyprland 0.55+ (`hyprland.lua`):*
+```lua
+hl.bindr("SUPER", "SUPER_L", hl.dsp.exec_cmd("qs ipc -c overview call overview confirm"))
+```
+*Hyprland 0.54 and older (`hyprland.conf`):*
+```conf
+bindr = SUPER, Super_L, exec, qs ipc -c overview call overview confirm
+```
 
 ### Manual Start (if needed)
 
@@ -118,7 +144,7 @@ qs -c overview &
 
 ### NixOS
 
-For NixOS users, ensure Quickshell has access to required Qt6 modules:
+Ensure Quickshell has access to the required Qt6 modules:
 
 ```nix
 # In your configuration.nix or home-manager config
@@ -139,35 +165,40 @@ home.packages = with pkgs; [
 
 ## 🎮 Usage
 
+Hold **Super** and use the switcher like macOS `⌘-Tab`:
+
 | Action | Description |
 |--------|-------------|
-| **Super + Tab** | Toggle the overview |
-| **Arrow Keys / h/l** | Navigate left/right within current row* |
-| **Up/Down / j/k** | Navigate between workspace rows |
-| **1-9, 0** | Jump to Nth workspace in current group (0 = 10th) |
-| **Mouse wheel on grid** | Move across all normal workspaces, wrapping from last to first |
-| **Escape / Enter** | Close the overview |
-| **Click outside overview** | Close the overview when `overview.closeOnFocusLoss` is enabled (default) |
-| **Click workspace** | Switch to that workspace |
-| **Click window** | Focus that window |
-| **Middle-click window** | Close that window |
-| **Drag window** | Move window to different workspace |
+| **Super + Tab** | Open the switcher / advance to the next window |
+| **Super held, tap Tab** | Cycle forward through windows |
+| **Super + Shift + Tab** | Cycle backward through windows |
+| **← / →** | Move selection left/right (while open) |
+| **Release Super** | Focus the selected window and close the switcher |
+| **Enter** | Focus the selected window and close |
+| **Escape** | Close without changing focus |
+| **Hover a tile** | Select that window |
+| **Click a tile** | Focus that window and close |
+| **Middle-click a tile** | Close that window |
+| **Click outside** | Close (when `switcher.closeOnFocusLoss` is enabled — default) |
 
-> *When `hideEmptyRows` is enabled, left/right navigation wraps within the current visible row for better UX
+The selection lands on the chosen window wherever it lives — Hyprland
+switches to the right monitor and workspace for you.
 
 ---
 
 ## ⚙️ Configuration
 
-> **⚠️ Want to change size, position, workspace count, or toggles?**
+> **⚠️ Want to change the style, size, or behavior?**
 > Create/edit `~/.config/quickshell/overview/config.json`.
 
-`Config.qml` inside the module is now treated as defaults. User overrides are read from:
+`Config.qml` inside the module is treated as defaults. User overrides are
+read from:
 
 - `$XDG_CONFIG_HOME/quickshell/overview/config.json`
 - fallback: `~/.config/quickshell/overview/config.json`
 
-> **Note:** After editing `config.json`, manually restart overview for changes to apply:
+> **Note:** After editing `config.json`, restart the switcher for changes
+> to apply:
 > `qs ipc -c overview call overview close && qs -c overview`
 
 ### Quick Start
@@ -177,85 +208,101 @@ mkdir -p ~/.config/quickshell/overview
 cp /etc/xdg/quickshell/overview/config.example.json ~/.config/quickshell/overview/config.json
 ```
 
-If you installed from git clone instead of AUR, copy from your repo path:
+If you installed from a git clone instead of AUR, copy from your repo path:
 
 ```bash
 cp ~/.config/quickshell/overview/config.example.json ~/.config/quickshell/overview/config.json
 ```
 
-### Workspace Grid
+### Switcher
 
 Edit `~/.config/quickshell/overview/config.json`:
 
 ```json
 {
-  "overview": {
-    "rows": 2,
-    "columns": 5,
-    "scale": 0.16,
+  "switcher": {
+    "style": "icons",
     "enable": true,
-    "hideEmptyRows": true,
-    "closeOnFocusLoss": true,
-    "useWorkspaceMap": false,
-    "workspaceMap": [0, 10],
-    "orderRightLeft": false,
-    "orderBottomUp": false,
+    "tileSize": 96,
+    "tileSpacing": 12,
+    "showTitle": true,
     "previewsEnabled": true,
     "previewMode": "live",
-    "includeInactiveMonitorPreviews": true,
     "previewRecaptureDelayMs": 60,
-    "showSpecialWorkspaces": true,
-    "specialWorkspaces": [],
-    "specialWorkspaceColumns": 5,
-    "emptyWorkspaceWallpaper": "",
-    "specialEmptyWorkspaceWallpaper": "",
+    "includeInactiveMonitorPreviews": true,
+    "includeSpecialWorkspaces": true,
+    "closeOnFocusLoss": true,
+    "backgroundPadding": 16,
     "effects": {
       "enableBackdrop": false,
       "backdropOpacity": 0.28,
       "panelOpacity": 0.92,
-      "workspaceOpacity": 0.86,
-      "emptyWorkspaceWallpaperOverlayOpacity": 0.18,
       "windowOverlayOpacity": 0.22,
       "enableBlur": false,
       "glassMode": false,
       "glassTintStrength": 0.35,
       "glassBorderOpacity": 0.72,
       "glassShineOpacity": 0.14
-    },
-    "workspaceSpacing": 5,
-    "backgroundPadding": 10,
-    "workspaceNumberBaseSize": 250
+    }
   }
 }
 ```
 
-**Common adjustments:**
-- **Too small?** Increase `scale` (try 0.20 or 0.25)
-- **Too big?** Decrease `scale` (try 0.12 or 0.14)
-- **More workspaces?** Change `rows` and `columns` (e.g., 3 rows × 4 columns = 12 workspaces)
-- **Reverse order?** Set `orderRightLeft` and/or `orderBottomUp` to `true`
-- **Prefer the overview to stay open after outside clicks/focus changes?** Set `closeOnFocusLoss` to `false`
-- **Per-monitor workspace groups?** Enable `useWorkspaceMap` and set `workspaceMap` (e.g. `[0,10]`)
-- **Show special workspaces below grid?** Keep `showSpecialWorkspaces: true` and optionally prefill `specialWorkspaces`
-- **Lower memory use?** Set `previewMode` to `event` and `includeInactiveMonitorPreviews` to `false`
-- **Transparency / blur?** Tune `overview.effects.*` (details below)
+- `style`: how each app tile is drawn — see [Presentation styles](#presentation-styles) below.
+- `enable`: master on/off for the switcher panel.
+- `tileSize`: width/height of each app tile in pixels.
+- `tileSpacing`: gap between tiles in pixels.
+- `showTitle`: show the selected app's window title beneath the row.
+- `includeSpecialWorkspaces`: include special/scratchpad windows as candidates (default `true`).
+- `closeOnFocusLoss`: clicking outside the switcher closes it (default `true`).
+- `backgroundPadding`: inner padding of the switcher panel in pixels.
+- Preview keys (`previewsEnabled`, `previewMode`, `previewRecaptureDelayMs`, `includeInactiveMonitorPreviews`) and `effects.*` are covered under [Presentation styles](#presentation-styles) and [Transparency & blur](#transparency--blur).
 
-**Hide empty workspace rows:**
-- Set `hideEmptyRows: true` to automatically hide rows that have no windows
-- Keeps your overview clean by only showing rows with active workspaces
-- The current workspace row is always visible, even if empty
-- Arrow key navigation (left/right) stays within the current row when enabled
-- Great for 2-row setups where you rarely use workspaces 6-10
+### Presentation styles
 
-**Close on focus loss / outside click:**
-- `closeOnFocusLoss` defaults to `true`
-- When enabled, clicking outside the overview closes it, similar to menus, dropdowns, and launchers
-- The overview also closes when its Hyprland focus grab is cleared
-- Set `closeOnFocusLoss: false` if you want the previous behavior where the overview can remain open after focus changes
+`switcher.style` controls how each app tile looks:
+
+| Value | Look |
+|-------|------|
+| `"icons"` | App icon only (default). Fast, lightweight, no screencopy. |
+| `"thumbnails"` | A live preview of the app's most-recent window, falling back to the icon when no preview is available. |
+| `"hybrid"` | The window preview as a dimmed background with the app icon centered on top. |
+
+Preview behavior (used by `thumbnails` and `hybrid`):
+
+```json
+{
+  "switcher": {
+    "style": "thumbnails",
+    "previewsEnabled": true,
+    "previewMode": "live",
+    "includeInactiveMonitorPreviews": true,
+    "previewRecaptureDelayMs": 60
+  }
+}
+```
+
+- `previewsEnabled`: turn all window screencopy previews on/off. With `style: "icons"` this has no visible effect.
+- `previewMode`: `live` (best visuals, more RAM) or `event` (lower RAM, refreshes on window events).
+- `includeInactiveMonitorPreviews`: when `false`, only current-monitor windows get preview capture.
+- `previewRecaptureDelayMs`: delay used for event-mode snapshot refresh (lower = faster updates).
+
+**Low-memory preset:**
+
+```json
+{
+  "switcher": {
+    "style": "icons"
+  },
+  "hacks": {
+    "hyprlandEventDebounceMs": 80
+  }
+}
+```
+
+The `icons` style skips screencopy entirely, so it's the lightest option.
 
 ### Position
-
-Edit `~/.config/quickshell/overview/config.json`:
 
 ```json
 {
@@ -265,117 +312,17 @@ Edit `~/.config/quickshell/overview/config.json`:
 }
 ```
 
-Increase `topMargin` to move the overview down. Decrease it to move up.
-
-### Window Preview
-
-```json
-{
-  "windowPreview": {
-    "showIcons": true,
-    "iconToWindowRatio": 0.25,
-    "iconToWindowRatioCompact": 0.45,
-    "xwaylandIndicatorToIconRatio": 0.35,
-    "inactiveMonitorOpacity": 0.4,
-    "cropToFill": false
-  }
-}
-```
-
-- `cropToFill`: crop full-screen windows to fill the workspace preview when `true`; keep the full window in preview with possible horizontal/vertical "padding" bars when `false`
-
-### Performance Tuning
-
-```json
-{
-  "overview": {
-    "previewsEnabled": true,
-    "previewMode": "live",
-    "includeInactiveMonitorPreviews": true,
-    "previewRecaptureDelayMs": 60
-  },
-  "hacks": {
-    "hyprlandEventDebounceMs": 40
-  }
-}
-```
-
-- `overview.previewsEnabled`: turn all window screencopy previews on/off
-- `overview.previewMode`: `live` (best visuals, more RAM) or `event` (lower RAM, refreshes on window events)
-- `overview.includeInactiveMonitorPreviews`: when `false`, only current monitor windows get preview capture
-- `overview.previewRecaptureDelayMs`: delay used for event-mode snapshot refresh (lower = faster updates)
-- `hacks.hyprlandEventDebounceMs`: coalesces Hyprland event refreshes to reduce command churn
-
-### Special Workspaces
-
-```json
-{
-  "overview": {
-    "showSpecialWorkspaces": true,
-    "specialWorkspaces": ["stash", "music", "scratch"],
-    "specialWorkspaceColumns": 5
-  }
-}
-```
-
-- `showSpecialWorkspaces`: renders special workspaces in a strip under the normal grid
-- `specialWorkspaces`: optional preconfigured special workspace names (without the `special:` prefix)
-- `specialWorkspaceColumns`: how many special tiles per row before wrapping
-- `emptyWorkspaceWallpaper`: optional image path used as the background for normal workspace tiles
-- `specialEmptyWorkspaceWallpaper`: optional image path used as the background for special workspace tiles
-
-Interaction behavior:
-- Preconfigured special workspaces appear in the overview even when they are empty
-- The special strip shows active special workspaces plus any names you preconfigure
-- This is useful for fixed workflows like `stash`, `music`, or `scratch`
-- Click a special tile to run `togglespecialworkspace <name>`
-- Click the `+` tile to create and open a new special workspace
-- Drag a window onto a special tile to move it with `movetoworkspacesilent special:<name>`
-- Drag a window onto the `+` tile to auto-create a new special workspace (`stash`, `stash-2`, ...), even when no special workspace is currently open or preconfigured
-- Special windows are visible directly in those tiles
-- Restart Quickshell after changing `config.json`, otherwise the special workspace list will not refresh immediately
-
-Normal workspace scrolling:
-- Scroll on the normal workspace grid to move the active workspace/highlighter across all normal workspaces
-- Scrolling wraps from the last workspace back to `1`, and from `1` back to the last
-
-### Workspace Wallpaper
-
-```json
-{
-  "overview": {
-    "emptyWorkspaceWallpaper": "/home/your-user/Pictures/wallpaper.png",
-    "specialEmptyWorkspaceWallpaper": "/home/your-user/Pictures/special-wallpaper.png",
-    "effects": {
-      "emptyWorkspaceWallpaperOverlayOpacity": 0.12
-    }
-  }
-}
-```
-
-- Normal workspaces can use a wallpaper as their background
-- Special workspaces can use a different wallpaper as their background
-- The wallpaper remains visible behind floating or partially covered windows
-- If no special workspaces exist yet, that special wallpaper is also used for the `+` create tile
-- `emptyWorkspaceWallpaperOverlayOpacity` controls how much tint is applied over that wallpaper
-- Use an absolute path for the image for the most reliable behavior
-- Restart Quickshell after changing `config.json`, otherwise the wallpaper path will not refresh immediately
-
-Demo:
-
-![Workspace wallpaper demo](assets/Workspace_Wallpaper.png)
+Increase `topMargin` to move the switcher down; decrease it to move up.
 
 ### Transparency & Blur
 
 ```json
 {
-  "overview": {
+  "switcher": {
     "effects": {
       "enableBackdrop": false,
       "backdropOpacity": 0.28,
       "panelOpacity": 0.92,
-      "workspaceOpacity": 0.86,
-      "emptyWorkspaceWallpaperOverlayOpacity": 0.18,
       "windowOverlayOpacity": 0.22,
       "enableBlur": false,
       "glassMode": false,
@@ -387,38 +334,15 @@ Demo:
 }
 ```
 
-- `enableBackdrop`: show/hide full-screen dim backdrop behind overview
-- `backdropOpacity`: opacity of backdrop dim layer (`0` to `1`)
-- `panelOpacity`: opacity of overview panel container (`0` to `1`)
-- `workspaceOpacity`: opacity of each workspace tile (`0` to `1`)
-- `emptyWorkspaceWallpaperOverlayOpacity`: tint strength over empty-workspace wallpaper (`0` to `1`)
-- `windowOverlayOpacity`: opacity of the color tint over window previews (`0` to `1`)
-- `enableBlur`: switches layer namespace to `quickshell:overview-blur`
-- `glassMode`: enables a glass-like tint + softer transparency preset for panel/workspaces/windows
-- `glassTintStrength`: tint mixing strength for glass mode (`0` to `1`)
-- `glassBorderOpacity`: border alpha used by glass mode (`0` to `1`)
-- `glassShineOpacity`: top highlight strength for glass reflections (`0` to `1`)
-
-Stronger glass preset:
-
-```json
-{
-  "overview": {
-    "effects": {
-      "enableBackdrop": true,
-      "enableBlur": true,
-      "panelOpacity": 0.55,
-      "workspaceOpacity": 0.48,
-      "emptyWorkspaceWallpaperOverlayOpacity": 0.10,
-      "windowOverlayOpacity": 0.08,
-      "glassMode": true,
-      "glassTintStrength": 0.55,
-      "glassBorderOpacity": 0.85,
-      "glassShineOpacity": 0.32
-    }
-  }
-}
-```
+- `enableBackdrop`: show/hide a full-screen dim backdrop behind the switcher.
+- `backdropOpacity`: opacity of the backdrop dim layer (`0` to `1`).
+- `panelOpacity`: opacity of the switcher panel container (`0` to `1`).
+- `windowOverlayOpacity`: opacity of the color tint over window previews (`0` to `1`).
+- `enableBlur`: switches the layer namespace to `quickshell:overview-blur`.
+- `glassMode`: enables a glass-like tint + softer transparency preset.
+- `glassTintStrength`: tint mixing strength for glass mode (`0` to `1`).
+- `glassBorderOpacity`: border alpha used by glass mode (`0` to `1`).
+- `glassShineOpacity`: top highlight strength for glass reflections (`0` to `1`).
 
 For Hyprland blur, add layer rules (example):
 
@@ -427,21 +351,7 @@ layerrule = blur true, match:namespace quickshell:overview-blur
 layerrule = ignore_alpha 0.2, match:namespace quickshell:overview-blur
 ```
 
-If `enableBlur` is `false`, namespace remains `quickshell:overview`.
-
-Low-memory preset:
-
-```json
-{
-  "overview": {
-    "previewMode": "event",
-    "includeInactiveMonitorPreviews": false
-  },
-  "hacks": {
-    "hyprlandEventDebounceMs": 80
-  }
-}
-```
+If `enableBlur` is `false`, the namespace remains `quickshell:overview`.
 
 ### Full Example
 
@@ -489,42 +399,30 @@ Low-memory preset:
       "elevationMargin": 10
     }
   },
-  "overview": {
-    "rows": 2,
-    "columns": 5,
-    "scale": 0.16,
+  "switcher": {
+    "style": "icons",
     "enable": true,
-    "hideEmptyRows": true,
-    "closeOnFocusLoss": true,
-    "useWorkspaceMap": false,
-    "workspaceMap": [0, 10],
-    "orderRightLeft": false,
-    "orderBottomUp": false,
+    "tileSize": 96,
+    "tileSpacing": 12,
+    "showTitle": true,
     "previewsEnabled": true,
     "previewMode": "live",
-    "includeInactiveMonitorPreviews": true,
     "previewRecaptureDelayMs": 60,
-    "showSpecialWorkspaces": true,
-    "specialWorkspaces": [],
-    "specialWorkspaceColumns": 5,
-    "emptyWorkspaceWallpaper": "",
-    "specialEmptyWorkspaceWallpaper": "",
+    "includeInactiveMonitorPreviews": true,
+    "includeSpecialWorkspaces": true,
+    "closeOnFocusLoss": true,
+    "backgroundPadding": 16,
     "effects": {
       "enableBackdrop": false,
       "backdropOpacity": 0.28,
       "panelOpacity": 0.92,
-      "workspaceOpacity": 0.86,
-      "emptyWorkspaceWallpaperOverlayOpacity": 0.18,
       "windowOverlayOpacity": 0.22,
       "enableBlur": false,
       "glassMode": false,
       "glassTintStrength": 0.35,
       "glassBorderOpacity": 0.72,
       "glassShineOpacity": 0.14
-    },
-    "workspaceSpacing": 5,
-    "backgroundPadding": 10,
-    "workspaceNumberBaseSize": 250
+    }
   },
   "position": {
     "topMargin": 100
@@ -546,7 +444,7 @@ Low-memory preset:
 
 ### Theme & Colors
 
-Most theme sizing/timing options are now configurable via `config.json`:
+Most theme sizing/timing options are configurable via `config.json`:
 - `appearance.colorSource` (`default`, `matugen`, `caelestia`)
 - `appearance.caelestia.*` (`autoRefresh`, `refreshInterval`, `accentProfile`)
 - `appearance.rounding.*`
@@ -558,9 +456,9 @@ For full color palette customization, edit `~/.config/quickshell/overview/common
 
 ### Matugen (Dynamic Colors from Wallpaper)
 
-[Matugen](https://github.com/InioX/matugen) lets you generate Material You colors from your wallpaper and apply them to the overview automatically.
+[Matugen](https://github.com/InioX/matugen) lets you generate Material You colors from your wallpaper and apply them to the switcher automatically.
 
-**1. Install matugen** - follow [matugen's install guide](https://github.com/InioX/matugen?tab=readme-ov-file#installation)
+**1. Install matugen** — follow [matugen's install guide](https://github.com/InioX/matugen?tab=readme-ov-file#installation)
 
 **2. Copy the template** from this repo to matugen's templates folder:
 ```bash
@@ -589,7 +487,7 @@ output_path = "~/.config/quickshell/overview/common/Appearance.colors.qml"
 matugen image /path/to/your/wallpaper.jpg
 ```
 
-This generates `Appearance.colors.qml` which the overview loads automatically. Re-run step 5 whenever you change your wallpaper.
+This generates `Appearance.colors.qml` which the switcher loads automatically. Re-run step 5 whenever you change your wallpaper.
 
 ### Caelestia
 
@@ -608,13 +506,13 @@ If you use Caelestia, set the source to `caelestia`:
 }
 ```
 
-Overview reads the active palette from `caelestia scheme get` and refreshes it live when `autoRefresh` is enabled, so wallpaper/scheme changes can apply without restarting overview.
+The switcher reads the active palette from `caelestia scheme get` and refreshes it live when `autoRefresh` is enabled, so wallpaper/scheme changes can apply without a restart.
 
 ---
 
 ## 📋 Requirements
 
-- **Hyprland** compositor (tested on latest versions)
+- **Hyprland** compositor (tested on latest versions; Lua-config 0.55+ and legacy `.conf` both supported)
 - **Quickshell** (Qt6-based shell framework)
 - **Qt 6** with the following modules:
   - QtQuick
@@ -623,16 +521,6 @@ Overview reads the active palette from `caelestia scheme get` and refreshes it l
   - Quickshell.Wayland
   - Quickshell.Hyprland
 
-## 🚫 Removed Features (from original illogical-impulse)
-
-The following features were removed to make it standalone:
-
-- App search functionality
-- Emoji picker
-- Clipboard history integration
-- Search widget
-- Integration with the full illogical-impulse shell ecosystem
-
 ## 📁 File Structure
 
 ```
@@ -640,44 +528,51 @@ The following features were removed to make it standalone:
 ├── shell.qml                      # Main entry point
 ├── README.md                      # This file
 ├── config.example.json            # User override template
-├── hyprland-config.conf          # Configuration reference
 ├── common/
-│   ├── Appearance.qml            # Theme and styling
-│   ├── Config.qml                # Default config + user override loader
+│   ├── Appearance.qml             # Theme and styling
+│   ├── Config.qml                 # Default config + user override loader
 │   ├── functions/
-│   │   └── ColorUtils.qml        # Color manipulation utilities
+│   │   └── ColorUtils.qml         # Color manipulation utilities
 │   └── widgets/
-│       ├── StyledText.qml        # Styled text component
+│       ├── StyledText.qml         # Styled text component
 │       ├── StyledRectangularShadow.qml
 │       ├── StyledToolTip.qml
 │       └── StyledToolTipContent.qml
 ├── services/
-│   ├── GlobalStates.qml          # Global state management
-│   └── HyprlandData.qml          # Hyprland data provider
+│   ├── Switcher.qml               # Switcher state + logic (singleton)
+│   └── HyprlandData.qml           # Hyprland data provider
 └── modules/
-    └── overview/
-        ├── Overview.qml          # Main overview component
-        ├── OverviewWidget.qml    # Workspace grid widget
-        └── OverviewWindow.qml    # Individual window preview
+    └── switcher/
+        ├── WindowSwitcher.qml     # Scope: window, keyboard grab, IPC
+        ├── SwitcherView.qml       # The panel: row of app tiles + title
+        └── SwitcherTile.qml       # A single app tile
 ```
 
 ## 🎯 IPC Commands
 
 ```bash
-# Toggle overview
-qs ipc -c overview call overview toggle
-
-# Open overview
+# Open the switcher (advances to the next app if already open)
 qs ipc -c overview call overview open
 
-# Close overview  
+# Cycle forward / backward (opens first if closed)
+qs ipc -c overview call overview next
+qs ipc -c overview call overview prev
+
+# Confirm the current selection and focus it (no-op if not open)
+qs ipc -c overview call overview confirm
+
+# Close without changing focus
 qs ipc -c overview call overview close
+
+# Toggle open/closed
+qs ipc -c overview call overview toggle
 ```
 
 ## 🐛 Known Issues
 
-- Window icons may fallback to generic icon if app class name doesn't match icon theme
-- Potential crashes during rapid window state changes due to Wayland screencopy buffer management
+- Window icons may fall back to a generic icon if the app's class name doesn't match an icon-theme entry.
+- Very fast `Super + Tab` tap-and-release can occasionally leave the switcher open (see [the fast-tap edge case](#how-the-keybind-works-and-the-fast-tap-edge-case) and the optional `bindr` safety net).
+- Potential instability during rapid window state changes due to Wayland screencopy buffer management (only relevant with `thumbnails`/`hybrid` styles).
 
 ## 💖 Support
 
@@ -685,11 +580,11 @@ If this project helps your setup and you want to support continued maintenance, 
 
 https://github.com/sponsors/Shanu-Kumawat
 
-##  Credits
+## Credits
 
-Extracted from the overview feature in [illogical-impulse](https://github.com/end-4/dots-hyprland) by [end-4](https://github.com/end-4).
+Extracted and reworked from the overview feature in [illogical-impulse](https://github.com/end-4/dots-hyprland) by [end-4](https://github.com/end-4).
 
-Adapted as a standalone component for Hyprland + Quickshell users who want just the overview functionality.
+Adapted into a standalone macOS-style window switcher for Hyprland + Quickshell users.
 
 ---
 
