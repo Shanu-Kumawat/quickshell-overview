@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import "../../common"
@@ -160,12 +159,14 @@ Item { // Window
         live: livePreviewEnabled
         layer.enabled: true
         layer.smooth: true
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: previewMask
-            maskThresholdMin: 0.5
-            maskSpreadAtMin: 1.0
-        }
+        layer.effect: previewMaskLoader.item
+    }
+
+    Loader {
+        id: previewMaskLoader
+        active: EffectsSupport.effectsAvailable
+        source: "../../common/widgets/RoundedMask.qml"
+        onLoaded: item.mask = previewMask
     }
 
     Rectangle {

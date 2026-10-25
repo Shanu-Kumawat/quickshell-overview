@@ -1,7 +1,9 @@
 singleton Appearance 1.0 Appearance.qml
 singleton Config 1.0 Config.qml
+singleton EffectsSupport 1.0 EffectsSupport.qml
 singleton ColorUtils 1.0 functions/ColorUtils.qml
 StyledText 1.0 widgets/StyledText.qml
 StyledRectangularShadow 1.0 widgets/StyledRectangularShadow.qml
 StyledToolTip 1.0 widgets/StyledToolTip.qml
 StyledToolTipContent 1.0 widgets/StyledToolTipContent.qml
+RoundedMask 1.0 widgets/RoundedMask.qml

@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -500,12 +499,7 @@ Item {
                                 mipmap: true
                                 layer.enabled: workspace.showWallpaper
                                 layer.smooth: true
-                                layer.effect: MultiEffect {
-                                    maskEnabled: true
-                                    maskSource: workspaceWallpaperMask
-                                    maskThresholdMin: 0.5
-                                    maskSpreadAtMin: 1.0
-                                }
+                                layer.effect: workspaceWallpaperMaskLoader.item
                             }
 
                             Item {
@@ -518,6 +512,13 @@ Item {
                                     anchors.fill: parent
                                     radius: workspace.radius
                                 }
+                            }
+
+                            Loader {
+                                id: workspaceWallpaperMaskLoader
+                                active: EffectsSupport.effectsAvailable
+                                source: "../../common/widgets/RoundedMask.qml"
+                                onLoaded: item.mask = workspaceWallpaperMask
                             }
 
                             Rectangle {
