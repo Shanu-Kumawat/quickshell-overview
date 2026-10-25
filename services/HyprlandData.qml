@@ -20,6 +20,9 @@ Singleton {
     property var workspaceIds: []
     property var workspaceById: ({})
     property var activeWorkspace: null
+    // Bumped every time the client list is replaced; lets consumers tell
+    // stale snapshots from fresh data
+    property int clientsRevision: 0
     property var monitors: []
     property var layers: ({})
     property bool pendingWindowsUpdate: false
@@ -142,7 +145,14 @@ Singleton {
         stdout: StdioCollector {
             id: clientsCollector
             onStreamFinished: {
-                root.windowList = JSON.parse(clientsCollector.text);
+                let parsed;
+                try {
+                    parsed = JSON.parse(clientsCollector.text);
+                } catch (error) {
+                    console.warn("overview: failed to parse hyprctl clients output", error);
+                    return;
+                }
+                root.windowList = parsed;
                 let tempWinByAddress = {};
                 for (var i = 0; i < root.windowList.length; ++i) {
                     var win = root.windowList[i];
@@ -150,6 +160,7 @@ Singleton {
                 }
                 root.windowByAddress = tempWinByAddress;
                 root.addresses = root.windowList.map(win => win.address);
+                root.clientsRevision += 1;
             }
         }
     }
@@ -160,7 +171,11 @@ Singleton {
         stdout: StdioCollector {
             id: monitorsCollector
             onStreamFinished: {
-                root.monitors = JSON.parse(monitorsCollector.text);
+                try {
+                    root.monitors = JSON.parse(monitorsCollector.text);
+                } catch (error) {
+                    console.warn("overview: failed to parse hyprctl monitors output", error);
+                }
             }
         }
     }
@@ -171,7 +186,11 @@ Singleton {
         stdout: StdioCollector {
             id: layersCollector
             onStreamFinished: {
-                root.layers = JSON.parse(layersCollector.text);
+                try {
+                    root.layers = JSON.parse(layersCollector.text);
+                } catch (error) {
+                    console.warn("overview: failed to parse hyprctl layers output", error);
+                }
             }
         }
     }
@@ -182,7 +201,13 @@ Singleton {
         stdout: StdioCollector {
             id: workspacesCollector
             onStreamFinished: {
-                const rawWorkspaces = JSON.parse(workspacesCollector.text);
+                let rawWorkspaces;
+                try {
+                    rawWorkspaces = JSON.parse(workspacesCollector.text);
+                } catch (error) {
+                    console.warn("overview: failed to parse hyprctl workspaces output", error);
+                    return;
+                }
                 root.allWorkspaces = rawWorkspaces;
                 root.workspaces = rawWorkspaces.filter(ws => ws.id >= 1 && ws.id <= 100);
                 let tempWorkspaceById = {};
@@ -202,7 +227,11 @@ Singleton {
         stdout: StdioCollector {
             id: activeWorkspaceCollector
             onStreamFinished: {
-                root.activeWorkspace = JSON.parse(activeWorkspaceCollector.text);
+                try {
+                    root.activeWorkspace = JSON.parse(activeWorkspaceCollector.text);
+                } catch (error) {
+                    console.warn("overview: failed to parse hyprctl activeworkspace output", error);
+                }
             }
         }
     }

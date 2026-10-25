@@ -20,7 +20,7 @@ Item {
     readonly property var workspaceMap: Config.options.overview.workspaceMap
     readonly property int workspaceOffset: useWorkspaceMap ? Number(workspaceMap[root.monitor?.id] ?? 0) : 0
     readonly property int workspaceGroup: Math.floor((effectiveActiveWorkspaceId - workspaceOffset - 1) / workspacesShown)
-    property bool monitorIsFocused: (Hyprland.focusedMonitor?.name == monitor.name)
+    property bool monitorIsFocused: (Hyprland.focusedMonitor?.name == monitor?.name)
     property var windows: HyprlandData.windowList
     property var windowByAddress: HyprlandData.windowByAddress
     property var windowAddresses: HyprlandData.addresses
@@ -197,9 +197,12 @@ Item {
 
     // Hyprland 0.55+ lua `window.move({workspace=...})` un-floats floating
     // windows and re-tiles them (#23). Remember the floating geometry so it
-    // can be restored right after the cross-workspace move. The float set
-    // right after the move is silently ignored for a few hundred ms, so
-    // poll until it actually sticks.
+    // can be restored right after the cross-workspace move. Two races make a
+    // single-shot restore unreliable: the compositor silently ignores a
+    // float set for a few hundred ms after the move, and windowByAddress may
+    // still hold the pre-move snapshot (stale `floating: true`). So poll:
+    // keep dispatching float set until FRESH data (clientsRevision advanced)
+    // confirms the window is floating again, then place it exactly.
     property var pendingFloatingRestore: null
     Timer {
         id: floatingRestoreTimer
@@ -208,7 +211,7 @@ Item {
         property int attempts: 0
         onTriggered: {
             const restore = root.pendingFloatingRestore;
-            if (!restore || attempts > 10) {
+            if (!restore || attempts > 12) {
                 stop();
                 attempts = 0;
                 root.pendingFloatingRestore = null;
@@ -218,14 +221,25 @@ Item {
                 stop(); // raw movetoworkspacesilent keeps floating windows intact
                 return;
             }
+            const dataIsFresh = HyprlandData.clientsRevision > restore.revision;
             const win = HyprlandData.windowByAddress[restore.address];
-            if (win?.floating) {
-                Hyprland.dispatch(`hl.dsp.window.move({ x = ${restore.x}, y = ${restore.y}, window = 'address:${restore.address}' })`);
-                stop();
-                attempts = 0;
-                root.pendingFloatingRestore = null;
-                return;
+            if (dataIsFresh) {
+                if (!win) {
+                    // window closed during the restore
+                    stop();
+                    attempts = 0;
+                    root.pendingFloatingRestore = null;
+                    return;
+                }
+                if (win.floating) {
+                    Hyprland.dispatch(`hl.dsp.window.move({ x = ${restore.x}, y = ${restore.y}, window = 'address:${restore.address}' })`);
+                    stop();
+                    attempts = 0;
+                    root.pendingFloatingRestore = null;
+                    return;
+                }
             }
+            // Stale data or float not accepted yet: try again
             Hyprland.dispatch(`hl.dsp.window.float({ action = 'set', window = 'address:${restore.address}' })`);
             attempts += 1;
         }
@@ -248,7 +262,8 @@ Item {
         root.pendingFloatingRestore = {
             address: windowData.address,
             x: Math.round((targetMonitor?.x ?? 0) + (targetMonitor?.reserved?.[0] ?? 0) + relX),
-            y: Math.round((targetMonitor?.y ?? 0) + (targetMonitor?.reserved?.[1] ?? 0) + relY)
+            y: Math.round((targetMonitor?.y ?? 0) + (targetMonitor?.reserved?.[1] ?? 0) + relY),
+            revision: HyprlandData.clientsRevision
         };
         floatingRestoreTimer.restart();
     }
@@ -434,7 +449,7 @@ Item {
                 return;
 
             const eventName = `${event?.name ?? event?.event ?? event?.type ?? ""}`;
-            if (eventName === "closewindow" || eventName === "openwindow" || eventName === "movewindow") {
+            if (eventName === "closewindow" || eventName === "openwindow" || eventName === "movewindow" || eventName === "movewindowv2") {
                 root.previewRecaptureToken += 1;
             }
         }
@@ -513,8 +528,10 @@ Item {
                     spacing: workspaceSpacing
                     visible: !Config.options.overview.hideEmptyRows ||
                              (root.rowsWithContent && root.rowsWithContent.has(rowIndex))
-                    height: visible ? implicitHeight : 0
-                    Behavior on height {
+                    // ColumnLayout sizes children from Layout.preferredHeight,
+                    // so animate that — animating `height` would be dead code
+                    Layout.preferredHeight: visible ? implicitHeight : 0
+                    Behavior on Layout.preferredHeight {
                         // Smooth reveal/collapse when keyboard selection enters or leaves an empty row
                         animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                     }
@@ -849,7 +866,7 @@ Item {
                                             geometryScaleY: specialWorkspaceTile.fitScale / root.scale
                                             xOffset: 0
                                             yOffset: 0
-                                            widgetMonitorId: root.monitor.id
+                                            widgetMonitorId: root.monitor?.id ?? -1
                                             recaptureToken: root.previewRecaptureToken
                                             restrictToWorkspace: false
                                             animateSize: false
@@ -910,8 +927,7 @@ Item {
                                                             Hyprland.dispatch(`movetoworkspacesilent special:${createdName}, address:${specialWindow.windowData?.address}`)
                                                         }
                                                         specialWindow.returnToHomeParent()
-                                                        specialWindow.x = specialWindow.initX
-                                                        specialWindow.y = specialWindow.initY
+                                                        specialWindow.rebindPosition()
                                                     }
                                                     else if (targetSpecialWorkspace && targetSpecialWorkspace !== specialWorkspaceTile.specialName) {
                                                         root.captureFloatingForMove(specialWindow.windowData, -1, targetSpecialWorkspace)
@@ -922,8 +938,7 @@ Item {
                                                             Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${specialWindow.windowData?.address}`)
                                                         }
                                                         specialWindow.returnToHomeParent()
-                                                        specialWindow.x = specialWindow.initX
-                                                        specialWindow.y = specialWindow.initY
+                                                        specialWindow.rebindPosition()
                                                     }
                                                     else if (targetWorkspace !== -1) {
                                                         root.captureFloatingForMove(specialWindow.windowData, targetWorkspace, "")
@@ -934,13 +949,11 @@ Item {
                                                             Hyprland.dispatch(`movetoworkspacesilent ${targetWorkspace}, address:${specialWindow.windowData?.address}`)
                                                         }
                                                         specialWindow.returnToHomeParent()
-                                                        specialWindow.x = specialWindow.initX
-                                                        specialWindow.y = specialWindow.initY
+                                                        specialWindow.rebindPosition()
                                                     }
                                                     else {
                                                         specialWindow.returnToHomeParent()
-                                                        specialWindow.x = specialWindow.initX
-                                                        specialWindow.y = specialWindow.initY
+                                                        specialWindow.rebindPosition()
                                                     }
                                                 }
                                                 onClicked: (event) => {
@@ -1142,7 +1155,7 @@ Item {
                     scale: root.scale
                     availableWorkspaceWidth: root.workspaceImplicitWidth
                     availableWorkspaceHeight: root.workspaceImplicitHeight
-                    widgetMonitorId: root.monitor.id
+                    widgetMonitorId: root.monitor?.id ?? -1
                     recaptureToken: root.previewRecaptureToken
 
                     property bool atInitPosition: (initX == x && initY == y)
@@ -1159,8 +1172,10 @@ Item {
                         repeat: false
                         running: false
                         onTriggered: {
-                            window.x = Math.round(Math.max((windowData?.at[0] - (monitor?.x ?? 0) - (monitorData?.reserved?.[0] ?? 0)) * root.scale * window.widthRatio, 0) + xOffset)
-                            window.y = Math.round(Math.max((windowData?.at[1] - (monitor?.y ?? 0) - (monitorData?.reserved?.[1] ?? 0)) * root.scale * window.heightRatio, 0) + yOffset)
+                            // Rebind instead of assigning: initX/initY track the
+                            // refreshed windowData automatically, so the tile
+                            // lands correctly whenever the data actually arrives
+                            window.rebindPosition()
                         }
                     }
 
@@ -1224,8 +1239,7 @@ Item {
                                 updateWindowPosition.restart()
                             }
                             else {
-                                window.x = window.initX
-                                window.y = window.initY
+                                window.rebindPosition()
                             }
                         }
                         onClicked: (event) => {

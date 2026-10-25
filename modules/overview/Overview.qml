@@ -55,8 +55,12 @@ Scope {
                 function onOverviewOpenChanged() {
                     if (GlobalStates.overviewOpen) {
                         GlobalStates.overviewSelectedWorkspaceId = -1;
-                        keyHandler.superHeld = true;
+                        keyHandler.superHeld = GlobalStates.overviewSuperHeld;
                         delayedGrabTimer.start();
+                    } else {
+                        // Nothing clears the grab when the overview closes any
+                        // other way; a stale grab on a hidden surface is risky
+                        grab.active = false;
                     }
                 }
             }
@@ -159,6 +163,7 @@ Scope {
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R) {
                         keyHandler.superHeld = true;
+                        event.accepted = true;
                         return;
                     }
                     // close: Escape (cancels selection) or Enter (commits it)
@@ -168,7 +173,7 @@ Scope {
                         event.accepted = true;
                         return;
                     }
-                    if (event.key === Qt.Key_Return) {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                         keyHandler.commitKeyboardSelection();
                         if (GlobalStates.overviewOpen)
                             GlobalStates.overviewOpen = false;
@@ -178,13 +183,16 @@ Scope {
 
                     // Helper: compute current group bounds
                     const workspacesPerGroup = Config.options.overview.rows * Config.options.overview.columns;
-                    const currentId = GlobalStates.overviewSelectedWorkspaceId >= 0
-                        ? GlobalStates.overviewSelectedWorkspaceId
-                        : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
                     const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
                     const workspaceMap = Config.options.overview.workspaceMap ?? [];
                     const focusedMonitorId = Hyprland.focusedMonitor?.id ?? root.monitor?.id ?? 0;
                     const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
+                    const rawActiveId = GlobalStates.overviewSelectedWorkspaceId >= 0
+                        ? GlobalStates.overviewSelectedWorkspaceId
+                        : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
+                    // Special workspaces have negative ids and don't belong to
+                    // any grid group; navigate from the group's first workspace
+                    const currentId = rawActiveId >= 1 ? rawActiveId : (workspaceOffset + 1);
                     const currentGroup = Math.floor((currentId - workspaceOffset - 1) / workspacesPerGroup);
                     const minWorkspaceId = currentGroup * workspacesPerGroup + 1 + workspaceOffset;
                     const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
@@ -306,9 +314,12 @@ Scope {
         const workspaceMap = Config.options.overview.workspaceMap ?? [];
         const focusedMonitorId = Hyprland.focusedMonitor?.id ?? 0;
         const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
-        const baseId = GlobalStates.overviewSelectedWorkspaceId >= 0
+        const rawBaseId = GlobalStates.overviewSelectedWorkspaceId >= 0
             ? GlobalStates.overviewSelectedWorkspaceId
             : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
+        // Special workspaces have negative ids outside the grid; cycle from
+        // the group's first workspace instead of computing a bogus group
+        const baseId = rawBaseId >= 1 ? rawBaseId : (workspaceOffset + 1);
         const group = Math.floor((baseId - workspaceOffset - 1) / workspacesPerGroup);
         const minWorkspaceId = group * workspacesPerGroup + 1 + workspaceOffset;
         const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
@@ -324,22 +335,28 @@ Scope {
         target: "overview"
 
         function toggle() {
+            // Not part of the Alt-Tab flow: Super isn't necessarily held, so
+            // arrows should switch workspaces immediately after this
+            GlobalStates.overviewSuperHeld = false;
             GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
         }
         function close() {
             GlobalStates.overviewOpen = false;
         }
         function open() {
+            GlobalStates.overviewSuperHeld = false;
             GlobalStates.overviewOpen = true;
         }
         // Alt-Tab style: opens when closed, advances the selection when open.
         // Bind Super+Tab to this so repeated Tab presses (which re-fire the
         // compositor bind) cycle instead of toggling.
         function cycle() {
+            GlobalStates.overviewSuperHeld = true;
             overviewScope.cycleSelection(1);
         }
         // Reverse cycle, bind to Super+Shift+Tab
         function cycleBack() {
+            GlobalStates.overviewSuperHeld = true;
             overviewScope.cycleSelection(-1);
         }
     }

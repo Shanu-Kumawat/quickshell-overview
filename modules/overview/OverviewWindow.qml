@@ -39,16 +39,24 @@ Item { // Window
         const widgetScale = widgetMonitorData.scale ?? 1;
         return (widgetHeight * sourceScale) / (sourceHeight * widgetScale);
     }
-    property real initX: Math.max(((windowData?.at[0] ?? 0) - positionBaseX) * root.scale * geometryScaleX, 0) + xOffset
-    property real initY: Math.max(((windowData?.at[1] ?? 0) - positionBaseY) * root.scale * geometryScaleY, 0) + yOffset
+    property real initX: Math.max(((windowData?.at?.[0] ?? 0) - positionBaseX) * root.scale * geometryScaleX, 0) + xOffset
+    property real initY: Math.max(((windowData?.at?.[1] ?? 0) - positionBaseY) * root.scale * geometryScaleY, 0) + yOffset
+
+    // Dragging (drag.target) and imperative x/y writes destroy the x/y
+    // bindings for the delegate's lifetime; call this to track initX/initY
+    // (and thus fresh windowData) again
+    function rebindPosition() {
+        x = Qt.binding(() => initX);
+        y = Qt.binding(() => initY);
+    }
     property real xOffset: 0
     property real yOffset: 0
     property int widgetMonitorId: 0
     property real geometryScaleX: widthRatio
     property real geometryScaleY: heightRatio
     
-    property var targetWindowWidth: (windowData?.size[0] ?? 100) * scale * geometryScaleX
-    property var targetWindowHeight: (windowData?.size[1] ?? 100) * scale * geometryScaleY
+    property var targetWindowWidth: (windowData?.size?.[0] ?? 100) * scale * geometryScaleX
+    property var targetWindowHeight: (windowData?.size?.[1] ?? 100) * scale * geometryScaleY
     property bool hovered: false
     property bool pressed: false
 
