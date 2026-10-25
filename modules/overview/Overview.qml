@@ -267,6 +267,34 @@ Scope {
         }
     }
 
+    // Shared by the cycle IPC functions. Lives outside the IpcHandler because
+    // IpcHandler exports every function, and the QVariant arg can't cross IPC.
+    function cycleSelection(direction) {
+        if (!GlobalStates.overviewOpen) {
+            GlobalStates.overviewOpen = true;
+            return;
+        }
+        const rows = Config.options.overview.rows;
+        const columns = Config.options.overview.columns;
+        const workspacesPerGroup = rows * columns;
+        const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
+        const workspaceMap = Config.options.overview.workspaceMap ?? [];
+        const focusedMonitorId = Hyprland.focusedMonitor?.id ?? 0;
+        const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
+        const baseId = GlobalStates.overviewSelectedWorkspaceId >= 0
+            ? GlobalStates.overviewSelectedWorkspaceId
+            : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
+        const group = Math.floor((baseId - workspaceOffset - 1) / workspacesPerGroup);
+        const minWorkspaceId = group * workspacesPerGroup + 1 + workspaceOffset;
+        const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
+        let next = baseId + direction;
+        if (next > maxWorkspaceId)
+            next = minWorkspaceId;
+        else if (next < minWorkspaceId)
+            next = maxWorkspaceId;
+        GlobalStates.overviewSelectedWorkspaceId = next;
+    }
+
     IpcHandler {
         target: "overview"
 
@@ -283,37 +311,11 @@ Scope {
         // Bind Super+Tab to this so repeated Tab presses (which re-fire the
         // compositor bind) cycle instead of toggling.
         function cycle() {
-            cycleSelection(1);
+            overviewScope.cycleSelection(1);
         }
         // Reverse cycle, bind to Super+Shift+Tab
         function cycleBack() {
-            cycleSelection(-1);
-        }
-
-        function cycleSelection(direction) {
-            if (!GlobalStates.overviewOpen) {
-                GlobalStates.overviewOpen = true;
-                return;
-            }
-            const rows = Config.options.overview.rows;
-            const columns = Config.options.overview.columns;
-            const workspacesPerGroup = rows * columns;
-            const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
-            const workspaceMap = Config.options.overview.workspaceMap ?? [];
-            const focusedMonitorId = Hyprland.focusedMonitor?.id ?? 0;
-            const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
-            const baseId = GlobalStates.overviewSelectedWorkspaceId >= 0
-                ? GlobalStates.overviewSelectedWorkspaceId
-                : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
-            const group = Math.floor((baseId - workspaceOffset - 1) / workspacesPerGroup);
-            const minWorkspaceId = group * workspacesPerGroup + 1 + workspaceOffset;
-            const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
-            let next = baseId + direction;
-            if (next > maxWorkspaceId)
-                next = minWorkspaceId;
-            else if (next < minWorkspaceId)
-                next = maxWorkspaceId;
-            GlobalStates.overviewSelectedWorkspaceId = next;
+            overviewScope.cycleSelection(-1);
         }
     }
 }

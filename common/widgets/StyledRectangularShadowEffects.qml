@@ -5,8 +5,8 @@ import ".."
 RectangularShadow {
     id: root
 
-    property var target
-    anchors.fill: target
+    // Fills the Loader, which fills the wrapper Item, which fills the target
+    anchors.fill: parent
     radius: 20
     blur: 0.9 * Appearance.sizes.elevationMargin
     offset: Qt.vector2d(0.0, 1.0)

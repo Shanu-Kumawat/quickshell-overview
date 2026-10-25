@@ -159,14 +159,14 @@ Item { // Window
         live: livePreviewEnabled
         layer.enabled: true
         layer.smooth: true
-        layer.effect: previewMaskLoader.item
+        // layer.effect takes a Component in Qt6; only instantiate
+        // the MultiEffect-based mask when QtQuick.Effects exists
+        layer.effect: EffectsSupport.effectsAvailable ? windowRoundedMaskComponent : null
     }
 
-    Loader {
-        id: previewMaskLoader
-        active: EffectsSupport.effectsAvailable
-        source: "../../common/widgets/RoundedMask.qml"
-        onLoaded: item.mask = previewMask
+    Component {
+        id: windowRoundedMaskComponent
+        RoundedMask { mask: previewMask }
     }
 
     Rectangle {

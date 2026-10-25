@@ -499,7 +499,9 @@ Item {
                                 mipmap: true
                                 layer.enabled: workspace.showWallpaper
                                 layer.smooth: true
-                                layer.effect: workspaceWallpaperMaskLoader.item
+                                // layer.effect takes a Component in Qt6; only instantiate
+                                // the MultiEffect-based mask when QtQuick.Effects exists
+                                layer.effect: EffectsSupport.effectsAvailable ? workspaceRoundedMaskComponent : null
                             }
 
                             Item {
@@ -514,11 +516,9 @@ Item {
                                 }
                             }
 
-                            Loader {
-                                id: workspaceWallpaperMaskLoader
-                                active: EffectsSupport.effectsAvailable
-                                source: "../../common/widgets/RoundedMask.qml"
-                                onLoaded: item.mask = workspaceWallpaperMask
+                            Component {
+                                id: workspaceRoundedMaskComponent
+                                RoundedMask { mask: workspaceWallpaperMask }
                             }
 
                             Rectangle {

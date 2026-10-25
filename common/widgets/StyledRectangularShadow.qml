@@ -12,7 +12,5 @@ Item {
         anchors.fill: parent
         active: EffectsSupport.effectsAvailable
         source: "StyledRectangularShadowEffects.qml"
-
-        onLoaded: item.target = root.target
     }
 }
