@@ -55,6 +55,7 @@ Scope {
                 function onOverviewOpenChanged() {
                     if (GlobalStates.overviewOpen) {
                         GlobalStates.overviewSelectedWorkspaceId = -1;
+                        keyHandler.superHeld = true;
                         delayedGrabTimer.start();
                     }
                 }
@@ -97,6 +98,13 @@ Scope {
                 focus: GlobalStates.overviewOpen
                 z: 0
 
+                // True from open (the usual flow is Super+Tab, whose press we
+                // never see) until Super is released inside the overview.
+                // While held, arrows/hjkl/numbers only move the selection
+                // (Alt-Tab style); once released they switch workspaces
+                // immediately like they used to.
+                property bool superHeld: true
+
                 function commitKeyboardSelection() {
                     const selected = GlobalStates.overviewSelectedWorkspaceId;
                     if (selected < 0)
@@ -107,6 +115,14 @@ Scope {
                         Hyprland.dispatch(`hl.dsp.focus({workspace = '${selected}'})`);
                     } else {
                         Hyprland.dispatch("workspace " + selected);
+                    }
+                }
+
+                function goToWorkspace(targetId) {
+                    if (Hyprland.usingLua) {
+                        Hyprland.dispatch(`hl.dsp.focus({workspace = '${targetId}'})`);
+                    } else {
+                        Hyprland.dispatch("workspace " + targetId);
                     }
                 }
 
@@ -134,12 +150,17 @@ Scope {
                 Keys.onReleased: event => {
                     // Alt-Tab style: jumping to the selection happens on Super release
                     if (event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R) {
+                        keyHandler.superHeld = false;
                         keyHandler.commitKeyboardSelection();
                         event.accepted = true;
                     }
                 }
 
                 Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R) {
+                        keyHandler.superHeld = true;
+                        return;
+                    }
                     // close: Escape (cancels selection) or Enter (commits it)
                     if (event.key === Qt.Key_Escape) {
                         GlobalStates.overviewSelectedWorkspaceId = -1;
@@ -240,6 +261,10 @@ Scope {
                     if (targetId !== null) {
                         const clampedTarget = Math.max(minWorkspaceId, Math.min(maxWorkspaceId, targetId));
                         GlobalStates.overviewSelectedWorkspaceId = clampedTarget;
+                        // Only defer to the Super-release commit while Super is
+                        // actually held; otherwise switch right away
+                        if (!keyHandler.superHeld)
+                            keyHandler.goToWorkspace(clampedTarget);
                         event.accepted = true;
                     }
                 }

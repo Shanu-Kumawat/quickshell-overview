@@ -224,7 +224,7 @@ Both modules install the module files for you (no manual `git clone` needed); an
 | Action | Description |
 |--------|-------------|
 | **Super + Tab / Super + Shift + Tab** | Open the overview; tap Tab again while holding Super to cycle the selection Alt-Tab style (Shift+Tab goes backwards) — releasing Super jumps to the selection. Bind via `overview cycle` / `overview cycleBack` (with `overview toggle` repeated Tab just closes it again) |
-| **Arrow Keys / h/l** | Navigate left/right within current row* |
+| **Arrow Keys / h/l** | Navigate left/right within current row* — while Super is held they only move the selection (release Super or press Enter to jump) |
 | **Up/Down / j/k** | Navigate between workspace rows |
 | **1-9, 0** | Jump to Nth workspace in current group (0 = 10th) |
 | **Mouse wheel on grid** | Move across all normal workspaces, wrapping from last to first |
