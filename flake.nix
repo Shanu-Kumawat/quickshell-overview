@@ -73,7 +73,7 @@
         package = cfg.package; inherit (cfg) settings; inherit pkgs;
       };
     in {
-      options.services.quickshell-overview = baseOptions { inherit lib; system = pkgs.system; };
+      options.services.quickshell-overview = baseOptions { inherit lib; system = pkgs.stdenv.hostPlatform.system; };
       config = lib.mkIf cfg.enable {
         system.activationScripts.quickshell-overview = lib.stringAfter [ "etc" ] ''
           mkdir -p /etc/xdg/quickshell
@@ -85,7 +85,7 @@
     homeManagerModules.default = { lib, pkgs, config, ... }: let
       cfg = config.programs.quickshell-overview;
     in { 
-      options.programs.quickshell-overview = baseOptions { inherit lib; system = pkgs.system; };
+      options.programs.quickshell-overview = baseOptions { inherit lib; system = pkgs.stdenv.hostPlatform.system; };
       config = lib.mkIf cfg.enable {
         xdg.configFile."quickshell/overview".source = mkConfigDir {
           package = cfg.package; inherit (cfg) settings; inherit pkgs;
