@@ -126,11 +126,13 @@ Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4
 
    *For Hyprland 0.55+ (`~/.config/hypr/hyprland.lua`):*
    ```lua
-   hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview toggle"))
+   hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview cycle"))
+   hl.bind("SUPER + SHIFT + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview cycleBack"))
    ```
    *For Hyprland 0.54 and older (`~/.config/hypr/hyprland.conf`):*
    ```conf
-   bind = Super, TAB, exec, qs ipc -c overview call overview toggle
+   bind = Super, TAB, exec, qs ipc -c overview call overview cycle
+   bind = SUPER SHIFT, Tab, exec, qs ipc -c overview call overview cycleBack
    ```
 
 4. **Auto-start** the overview (add to Hyprland config):
@@ -219,12 +221,12 @@ Both modules install the module files for you (no manual `git clone` needed); an
 
 | Action | Description |
 |--------|-------------|
-| **Super + Tab** | Toggle the overview |
+| **Super + Tab / Super + Shift + Tab** | Open the overview; tap Tab again while holding Super to cycle the selection Alt-Tab style (Shift+Tab goes backwards) — releasing Super jumps to the selection. Bind via `overview cycle` / `overview cycleBack` (with `overview toggle` repeated Tab just closes it again) |
 | **Arrow Keys / h/l** | Navigate left/right within current row* |
 | **Up/Down / j/k** | Navigate between workspace rows |
 | **1-9, 0** | Jump to Nth workspace in current group (0 = 10th) |
 | **Mouse wheel on grid** | Move across all normal workspaces, wrapping from last to first |
-| **Escape / Enter** | Close the overview |
+| **Escape / Enter** | Close the overview (Escape cancels the keyboard selection, Enter jumps to it) |
 | **Click outside overview** | Close the overview when `overview.closeOnFocusLoss` is enabled (default) |
 | **Click workspace** | Switch to that workspace |
 | **Click window** | Focus that window |

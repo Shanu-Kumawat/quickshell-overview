@@ -7,5 +7,6 @@ import Quickshell
 Singleton {
     id: root
     property bool overviewOpen: false
-    property bool superReleaseMightTrigger: true
+    // Workspace currently highlighted by keyboard selection (Tab/arrows); -1 = follow active workspace
+    property int overviewSelectedWorkspaceId: -1
 }

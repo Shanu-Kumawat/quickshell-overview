@@ -54,6 +54,7 @@ Scope {
                 target: GlobalStates
                 function onOverviewOpenChanged() {
                     if (GlobalStates.overviewOpen) {
+                        GlobalStates.overviewSelectedWorkspaceId = -1;
                         delayedGrabTimer.start();
                     }
                 }
@@ -96,6 +97,19 @@ Scope {
                 focus: GlobalStates.overviewOpen
                 z: 0
 
+                function commitKeyboardSelection() {
+                    const selected = GlobalStates.overviewSelectedWorkspaceId;
+                    if (selected < 0)
+                        return;
+                    GlobalStates.overviewSelectedWorkspaceId = -1;
+                    GlobalStates.overviewOpen = false;
+                    if (Hyprland.usingLua) {
+                        Hyprland.dispatch(`hl.dsp.focus({workspace = '${selected}'})`);
+                    } else {
+                        Hyprland.dispatch("workspace " + selected);
+                    }
+                }
+
                 Rectangle {
                     id: backdropLayer
                     anchors.fill: parent
@@ -117,17 +131,35 @@ Scope {
                     }
                 }
 
+                Keys.onReleased: event => {
+                    // Alt-Tab style: jumping to the selection happens on Super release
+                    if (event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R) {
+                        keyHandler.commitKeyboardSelection();
+                        event.accepted = true;
+                    }
+                }
+
                 Keys.onPressed: event => {
-                    // close: Escape or Enter
-                    if (event.key === Qt.Key_Escape || event.key === Qt.Key_Return) {
+                    // close: Escape (cancels selection) or Enter (commits it)
+                    if (event.key === Qt.Key_Escape) {
+                        GlobalStates.overviewSelectedWorkspaceId = -1;
                         GlobalStates.overviewOpen = false;
+                        event.accepted = true;
+                        return;
+                    }
+                    if (event.key === Qt.Key_Return) {
+                        keyHandler.commitKeyboardSelection();
+                        if (GlobalStates.overviewOpen)
+                            GlobalStates.overviewOpen = false;
                         event.accepted = true;
                         return;
                     }
 
                     // Helper: compute current group bounds
                     const workspacesPerGroup = Config.options.overview.rows * Config.options.overview.columns;
-                    const currentId = Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1;
+                    const currentId = GlobalStates.overviewSelectedWorkspaceId >= 0
+                        ? GlobalStates.overviewSelectedWorkspaceId
+                        : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
                     const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
                     const workspaceMap = Config.options.overview.workspaceMap ?? [];
                     const focusedMonitorId = Hyprland.focusedMonitor?.id ?? root.monitor?.id ?? 0;
@@ -166,8 +198,11 @@ Scope {
 
                     let targetId = null;
 
-                    // Arrow keys and vim-style hjkl
-                    if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
+                    // Arrow keys and vim-style hjkl.
+                    // NOTE: Tab cycling is handled by the compositor bind calling IPC
+                    // `overview cycle` (binds consume keypresses, so this layer never sees Tab).
+                    const backtabPressed = event.key === Qt.Key_Backtab;
+                    if (event.key === Qt.Key_Left || event.key === Qt.Key_H || backtabPressed) {
                         targetVisualColumn = (targetVisualColumn - 1 + columns) % columns;
                     } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
                         targetVisualColumn = (targetVisualColumn + 1) % columns;
@@ -192,7 +227,7 @@ Scope {
                     }
 
                     if (targetId === null && (
-                        event.key === Qt.Key_Left || event.key === Qt.Key_H ||
+                        event.key === Qt.Key_Left || event.key === Qt.Key_H || backtabPressed ||
                         event.key === Qt.Key_Right || event.key === Qt.Key_L ||
                         event.key === Qt.Key_Up || event.key === Qt.Key_K ||
                         event.key === Qt.Key_Down || event.key === Qt.Key_J
@@ -204,11 +239,7 @@ Scope {
 
                     if (targetId !== null) {
                         const clampedTarget = Math.max(minWorkspaceId, Math.min(maxWorkspaceId, targetId));
-			if (Hyprland.usingLua) {
-				Hyprland.dispatch(`hl.dsp.focus({workspace = '${clampedTarget}'})`);
-			} else {
-				Hyprland.dispatch("workspace " + clampedTarget);
-			}
+                        GlobalStates.overviewSelectedWorkspaceId = clampedTarget;
                         event.accepted = true;
                     }
                 }
@@ -247,6 +278,42 @@ Scope {
         }
         function open() {
             GlobalStates.overviewOpen = true;
+        }
+        // Alt-Tab style: opens when closed, advances the selection when open.
+        // Bind Super+Tab to this so repeated Tab presses (which re-fire the
+        // compositor bind) cycle instead of toggling.
+        function cycle() {
+            cycleSelection(1);
+        }
+        // Reverse cycle, bind to Super+Shift+Tab
+        function cycleBack() {
+            cycleSelection(-1);
+        }
+
+        function cycleSelection(direction) {
+            if (!GlobalStates.overviewOpen) {
+                GlobalStates.overviewOpen = true;
+                return;
+            }
+            const rows = Config.options.overview.rows;
+            const columns = Config.options.overview.columns;
+            const workspacesPerGroup = rows * columns;
+            const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
+            const workspaceMap = Config.options.overview.workspaceMap ?? [];
+            const focusedMonitorId = Hyprland.focusedMonitor?.id ?? 0;
+            const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
+            const baseId = GlobalStates.overviewSelectedWorkspaceId >= 0
+                ? GlobalStates.overviewSelectedWorkspaceId
+                : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
+            const group = Math.floor((baseId - workspaceOffset - 1) / workspacesPerGroup);
+            const minWorkspaceId = group * workspacesPerGroup + 1 + workspaceOffset;
+            const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
+            let next = baseId + direction;
+            if (next > maxWorkspaceId)
+                next = minWorkspaceId;
+            else if (next < minWorkspaceId)
+                next = maxWorkspaceId;
+            GlobalStates.overviewSelectedWorkspaceId = next;
         }
     }
 }

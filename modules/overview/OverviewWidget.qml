@@ -344,6 +344,13 @@ Item {
             rows.add(getWorkspaceRow(currentWorkspace));
         }
 
+        // Also show the row containing the keyboard selection (Tab cycling),
+        // so the indicator never lands on a collapsed row
+        const selectedWorkspace = GlobalStates.overviewSelectedWorkspaceId;
+        if (selectedWorkspace >= firstWorkspace && selectedWorkspace <= lastWorkspace) {
+            rows.add(getWorkspaceRow(selectedWorkspace));
+        }
+
         // Add rows with windows
         for (let addr in windowByAddress) {
             const win = windowByAddress[addr];
@@ -450,6 +457,10 @@ Item {
                     visible: !Config.options.overview.hideEmptyRows ||
                              (root.rowsWithContent && root.rowsWithContent.has(rowIndex))
                     height: visible ? implicitHeight : 0
+                    Behavior on height {
+                        // Smooth reveal/collapse when keyboard selection enters or leaves an empty row
+                        animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                    }
 
                     Repeater { // Workspace repeater
                         model: Config.options.overview.columns
@@ -1184,9 +1195,13 @@ Item {
 
             Rectangle { // Focused workspace indicator
                 id: focusedWorkspaceIndicator
-                property int activeWorkspaceRowIndex: root.getWorkspaceRow(root.effectiveActiveWorkspaceId)
+                // Keyboard selection (Tab / arrows) moves the indicator; -1 follows the active workspace
+                property int indicatorWorkspaceId: GlobalStates.overviewSelectedWorkspaceId >= 0
+                    ? GlobalStates.overviewSelectedWorkspaceId
+                    : root.effectiveActiveWorkspaceId
+                property int activeWorkspaceRowIndex: root.getWorkspaceRow(indicatorWorkspaceId)
                 property int visibleActiveWorkspaceRowIndex: root.getVisibleRowPosition(activeWorkspaceRowIndex)
-                property int activeWorkspaceColIndex: root.getWorkspaceColumn(root.effectiveActiveWorkspaceId)
+                property int activeWorkspaceColIndex: root.getWorkspaceColumn(indicatorWorkspaceId)
                 x: (root.workspaceImplicitWidth + workspaceSpacing) * activeWorkspaceColIndex
                 y: (root.workspaceImplicitHeight + workspaceSpacing) * visibleActiveWorkspaceRowIndex
                 z: root.windowDraggingZ - 1
