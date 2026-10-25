@@ -85,9 +85,12 @@ Item { // Window
         const raw = `${entry?.icon ?? ""}`.trim();
         const withoutProviderPrefix = raw.replace(/^image:\/\/icon\//, "");
         const withoutQuery = withoutProviderPrefix.split("?")[0].trim();
-        return withoutQuery.length > 0 ? withoutQuery : "application-x-executable";
+        // Empty when no desktop entry matched: requesting the generic
+        // application-x-executable fallback just logs icon-theme warnings
+        // since it (and image-missing) are often not installed
+        return withoutQuery.length > 0 ? withoutQuery : "";
     }
-    property var iconPath: Quickshell.iconPath(iconName, "image-missing")
+    property var iconPath: iconName.length > 0 ? Quickshell.iconPath(iconName, "image-missing") : ""
     property bool compactMode: Appearance.font.pixelSize.smaller * 4 > targetWindowHeight || Appearance.font.pixelSize.smaller * 4 > targetWindowWidth
 
     property bool indicateXWayland: windowData?.xwayland ?? false

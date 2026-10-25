@@ -261,6 +261,7 @@ Singleton {
         property color colLayer1Hover: ColorUtils.mix(colLayer1, colOnLayer1, 0.92)
         property color colLayer1Active: ColorUtils.mix(colLayer1, colOnLayer1, 0.85)
         property color colLayer2: m3colors.m3surfaceContainer
+        property color colLayer2Border: ColorUtils.mix(root.m3colors.m3outlineVariant, colLayer2, 0.4)
         property color colOnLayer2: m3colors.m3onSurface
         property color colLayer2Hover: ColorUtils.mix(colLayer2, colOnLayer2, 0.90)
         property color colLayer2Active: ColorUtils.mix(colLayer2, colOnLayer2, 0.80)
