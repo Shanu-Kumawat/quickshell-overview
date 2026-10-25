@@ -66,11 +66,52 @@ Put your custom settings in:
 
 Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4 below).
 
+### Fedora
+
+**1. Install Quickshell.** It is in the official Fedora repositories from Fedora 44 onward:
+
+```bash
+sudo dnf install quickshell
+```
+
+On Fedora 43 (and for newer/dev builds on any release), use the COPR instead:
+
+```bash
+sudo dnf copr enable errornointernet/quickshell
+sudo dnf install quickshell
+```
+
+**2. Install Hyprland.** It is not in the official Fedora repositories. The `sachesi/hyprland` COPR tracks upstream releases and builds for Fedora 44 and Rawhide:
+
+```bash
+sudo dnf copr enable sachesi/hyprland
+sudo dnf install hyprland xdg-desktop-portal-hyprland
+```
+
+> `solopasha/hyprland` is the other commonly referenced COPR, but it's been stale for a while (stuck on 0.51.1).
+
+**3. Qt 6 modules.** `quickshell` already pulls these in, so you only need them if you built Quickshell yourself:
+
+```bash
+sudo dnf install qt6-qtdeclarative qt6-qtwayland
+```
+
+`qt6-qtdeclarative` provides QtQuick, QtQuick.Controls, QtQuick.Layouts and QtQuick.Effects; `qt6-qtwayland` backs `Quickshell.Wayland`.
+
+**4. Install the overview module.** There is no Fedora package for this module, so clone it and copy the config template from the repo (not from `/etc/xdg/`, which only exists on AUR installs):
+
+```bash
+git clone https://github.com/Shanu-Kumawat/quickshell-overview ~/.config/quickshell/overview
+cp ~/.config/quickshell/overview/config.example.json ~/.config/quickshell/overview/config.json
+```
+
+Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4 below).
+
 ### Prerequisites
 
 - **Hyprland** compositor
 - **Quickshell** ([installation guide](https://quickshell.org/docs/v0.1.0/guide/install-setup/))
-- **Qt 6** with modules: QtQuick, QtQuick.Controls
+- **Qt 6** with modules: QtQuick, QtQuick.Controls, QtQuick.Effects
 
 ### Setup
 
@@ -620,6 +661,7 @@ Overview reads the active palette from `caelestia scheme get` and refreshes it l
   - QtQuick
   - QtQuick.Controls
   - QtQuick.Layouts
+  - QtQuick.Effects
   - Quickshell.Wayland
   - Quickshell.Hyprland
 
