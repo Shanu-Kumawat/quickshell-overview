@@ -88,7 +88,7 @@ sudo dnf copr enable sachesi/hyprland
 sudo dnf install hyprland xdg-desktop-portal-hyprland
 ```
 
-> `solopasha/hyprland` is the other commonly referenced COPR, but it currently only builds for Rawhide.
+> `solopasha/hyprland` is the other commonly referenced COPR, but it's been stale for a while (stuck on 0.51.1).
 
 **3. Qt 6 modules.** `quickshell` already pulls these in, so you only need them if you built Quickshell yourself:
 
@@ -111,7 +111,7 @@ Then add the keybind and auto-start to your Hyprland config (see Setup steps 2-4
 
 - **Hyprland** compositor
 - **Quickshell** ([installation guide](https://quickshell.org/docs/v0.1.0/guide/install-setup/))
-- **Qt 6** with modules: QtQuick, QtQuick.Controls
+- **Qt 6** with modules: QtQuick, QtQuick.Controls, QtQuick.Effects
 
 ### Setup
 
