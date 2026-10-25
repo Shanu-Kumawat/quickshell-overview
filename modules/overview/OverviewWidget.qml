@@ -195,6 +195,64 @@ Item {
         return visibleRow;
     }
 
+    // Hyprland 0.55+ lua `window.move({workspace=...})` un-floats floating
+    // windows and re-tiles them (#23). Remember the floating geometry so it
+    // can be restored right after the cross-workspace move. The float set
+    // right after the move is silently ignored for a few hundred ms, so
+    // poll until it actually sticks.
+    property var pendingFloatingRestore: null
+    Timer {
+        id: floatingRestoreTimer
+        interval: 150
+        repeat: true
+        property int attempts: 0
+        onTriggered: {
+            const restore = root.pendingFloatingRestore;
+            if (!restore || attempts > 10) {
+                stop();
+                attempts = 0;
+                root.pendingFloatingRestore = null;
+                return;
+            }
+            if (!Hyprland.usingLua) {
+                stop(); // raw movetoworkspacesilent keeps floating windows intact
+                return;
+            }
+            const win = HyprlandData.windowByAddress[restore.address];
+            if (win?.floating) {
+                Hyprland.dispatch(`hl.dsp.window.move({ x = ${restore.x}, y = ${restore.y}, window = 'address:${restore.address}' })`);
+                stop();
+                attempts = 0;
+                root.pendingFloatingRestore = null;
+                return;
+            }
+            Hyprland.dispatch(`hl.dsp.window.float({ action = 'set', window = 'address:${restore.address}' })`);
+            attempts += 1;
+        }
+    }
+
+    function captureFloatingForMove(windowData, targetWorkspaceId, targetSpecialWorkspace) {
+        if (!(windowData?.floating))
+            return;
+        const sourceMonitor = HyprlandData.monitors.find(m => m.id === windowData.monitor);
+        const relX = (windowData.at[0] ?? 0) - (sourceMonitor?.x ?? 0) - (sourceMonitor?.reserved?.[0] ?? 0);
+        const relY = (windowData.at[1] ?? 0) - (sourceMonitor?.y ?? 0) - (sourceMonitor?.reserved?.[1] ?? 0);
+        // Keep the window's position relative to the workspace it lands on;
+        // special workspaces live on the source monitor
+        let targetMonitor = sourceMonitor;
+        if (!targetSpecialWorkspace) {
+            const found = HyprlandData.monitors.find(m => m.activeWorkspace?.id === targetWorkspaceId);
+            if (found)
+                targetMonitor = found;
+        }
+        root.pendingFloatingRestore = {
+            address: windowData.address,
+            x: Math.round((targetMonitor?.x ?? 0) + (targetMonitor?.reserved?.[0] ?? 0) + relX),
+            y: Math.round((targetMonitor?.y ?? 0) + (targetMonitor?.reserved?.[1] ?? 0) + relY)
+        };
+        floatingRestoreTimer.restart();
+    }
+
     function stepWorkspace(delta) {
         if (!Number.isFinite(delta) || delta === 0)
             return;
@@ -844,6 +902,7 @@ Item {
                                                     root.draggingTargetSpecialWorkspace = ""
                                                     if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                                         const createdName = root.nextSpecialWorkspaceName()
+                                                        root.captureFloatingForMove(specialWindow.windowData, -1, createdName)
                                                         //INFO: From special TO NEW special
                                                         if (Hyprland.usingLua) {
                                                             Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${createdName}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
@@ -855,6 +914,7 @@ Item {
                                                         specialWindow.y = specialWindow.initY
                                                     }
                                                     else if (targetSpecialWorkspace && targetSpecialWorkspace !== specialWorkspaceTile.specialName) {
+                                                        root.captureFloatingForMove(specialWindow.windowData, -1, targetSpecialWorkspace)
                                                         // Idk
                                                         if (Hyprland.usingLua) {
                                                             Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
@@ -866,6 +926,7 @@ Item {
                                                         specialWindow.y = specialWindow.initY
                                                     }
                                                     else if (targetWorkspace !== -1) {
+                                                        root.captureFloatingForMove(specialWindow.windowData, targetWorkspace, "")
                                                         //INFO: From Special TO Normal workspace
                                                         if (Hyprland.usingLua) {
                                                             Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
@@ -1133,6 +1194,7 @@ Item {
                             root.draggingTargetSpecialWorkspace = ""
                             if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                 const createdName = root.nextSpecialWorkspaceName()
+                                root.captureFloatingForMove(window.windowData, -1, createdName)
                                 //INFO: From normal TO special
                                 if (Hyprland.usingLua) {
                                     Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${createdName}', follow = false, window = 'address:${window.windowData?.address}'})`);
@@ -1142,6 +1204,7 @@ Item {
                                 updateWindowPosition.restart()
                             }
                             else if (targetSpecialWorkspace && targetSpecialWorkspace !== root.specialWorkspaceName(windowData)) {
+                                root.captureFloatingForMove(window.windowData, -1, targetSpecialWorkspace)
                                 // Idk
                                 if (Hyprland.usingLua) {
                                     Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
@@ -1151,6 +1214,7 @@ Item {
                                 updateWindowPosition.restart()
                             }
                             else if (targetWorkspace !== -1 && targetWorkspace !== windowData?.workspace.id) {
+                                root.captureFloatingForMove(window.windowData, targetWorkspace, "")
                                 //INFO: From normal TO normal
                                 if (Hyprland.usingLua) {
                                     Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
