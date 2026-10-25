@@ -178,6 +178,43 @@ home.packages = with pkgs; [
 ];
 ```
 
+#### Installing via flake (NixOS / Home Manager)
+
+The repo ships a flake with a package, a NixOS module and a Home Manager module. Add it to your flake inputs:
+
+```nix
+inputs.quickshell-overview = {
+  url = "github:Shanu-Kumawat/quickshell-overview";
+  inputs.nixpkgs.follows = "nixpkgs"; # recommended: this repo's flake.lock may not be up to date
+};
+```
+
+**NixOS:**
+
+```nix
+{ inputs, ... }: {
+  imports = [ inputs.quickshell-overview.nixosModules.default ];
+  services.quickshell-overview.enable = true;
+  services.quickshell-overview.settings = {}; # optional, serialized to config.json
+}
+```
+
+**Home Manager:**
+
+```nix
+{ inputs, ... }: {
+  home-manager.sharedModules = [
+    inputs.quickshell-overview.homeManagerModules.default
+    {
+      programs.quickshell-overview.enable = true;
+      programs.quickshell-overview.settings = {}; # optional, serialized to config.json
+    }
+  ];
+}
+```
+
+Both modules install the module files for you (no manual `git clone` needed); anything set in `settings` ends up in the generated `config.json` (see [config.example.json](config.example.json) for available options).
+
 ## 🎮 Usage
 
 | Action | Description |
