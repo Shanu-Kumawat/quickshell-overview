@@ -267,6 +267,8 @@ cp ~/.config/quickshell/overview/config.example.json ~/.config/quickshell/overvi
 
 ### Workspace Grid
 
+> **2D workspace grids (hyprkool-style):** true 2D grids with named activities aren't built in — this overview maps Hyprland's linear workspace ids onto rows/columns. See [shinkuan's fork](https://github.com/shinkuan/quickshell-overview/tree/hyprkool) for a working setup: a [KGrid Lua engine](https://github.com/shinkuan/dotfiles/commit/4bccfa6f60d46db6be420a866e03ac1a998b94aa) in the Hyprland config creates `activity:(x y)`-named workspaces, and [his overview changes](https://github.com/shinkuan/quickshell-overview/commit/390295d765ac73776830b051bcac23e73e607809) make the overview read and switch them (no hyprkool needed on Hyprland 0.55+). Expect to maintain the patch yourself, it's a personal setup.
+
 Edit `~/.config/quickshell/overview/config.json`:
 
 ```json
