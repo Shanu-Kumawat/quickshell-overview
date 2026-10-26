@@ -122,6 +122,11 @@ Singleton {
             property bool showNamedWorkspaces: root.readBool("overview.showNamedWorkspaces", true)
             property var specialWorkspaces: root.read("overview.specialWorkspaces", [])
             property int specialWorkspaceColumns: root.readInt("overview.specialWorkspaceColumns", columns)
+            property QtObject scrolling: QtObject {
+                // Vertical strip overview for Hyprland's scrolling layout
+                property bool enable: root.readBool("overview.scrolling.enable", false)
+                property int workspaceCount: root.readInt("overview.scrolling.workspaceCount", 10)
+            }
             property string emptyWorkspaceWallpaper: root.readString("overview.emptyWorkspaceWallpaper", "")
             property string specialEmptyWorkspaceWallpaper: root.readString("overview.specialEmptyWorkspaceWallpaper", "")
             property real workspaceSpacing: root.readReal("overview.workspaceSpacing", 5)

@@ -181,8 +181,12 @@ Scope {
                         return;
                     }
 
-                    // Helper: compute current group bounds
-                    const workspacesPerGroup = Config.options.overview.rows * Config.options.overview.columns;
+                    // Helper: compute current group bounds; strip mode is a
+                    // single vertical column of overview.scrolling.workspaceCount
+                    const scrollingMode = Config.options.overview.scrolling.enable;
+                    const rows = scrollingMode ? Config.options.overview.scrolling.workspaceCount : Config.options.overview.rows;
+                    const columns = scrollingMode ? 1 : Config.options.overview.columns;
+                    const workspacesPerGroup = rows * columns;
                     const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
                     const workspaceMap = Config.options.overview.workspaceMap ?? [];
                     const focusedMonitorId = Hyprland.focusedMonitor?.id ?? root.monitor?.id ?? 0;
@@ -197,8 +201,6 @@ Scope {
                     const minWorkspaceId = currentGroup * workspacesPerGroup + 1 + workspaceOffset;
                     const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
 
-                    const rows = Config.options.overview.rows;
-                    const columns = Config.options.overview.columns;
                     const reverseColumns = Config.options.overview.orderRightLeft;
                     const reverseRows = Config.options.overview.orderBottomUp;
 
@@ -291,7 +293,20 @@ Scope {
                 Loader {
                     id: overviewLoader
                     active: Config?.options.overview.enable ?? true
-                    sourceComponent: OverviewWidget {
+                    sourceComponent: Config.options.overview.scrolling.enable ? stripComponent : classicComponent
+                }
+
+                Component {
+                    id: classicComponent
+                    OverviewWidget {
+                        panelWindow: root
+                        visible: true
+                    }
+                }
+
+                Component {
+                    id: stripComponent
+                    ScrollingOverviewWidget {
                         panelWindow: root
                         visible: true
                     }

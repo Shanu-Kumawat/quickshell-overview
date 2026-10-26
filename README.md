@@ -265,6 +265,23 @@ If you installed from git clone instead of AUR, copy from your repo path:
 cp ~/.config/quickshell/overview/config.example.json ~/.config/quickshell/overview/config.json
 ```
 
+### Scrolling Layout Mode
+
+If you use Hyprland's **scrolling** layout (`general:layout = scrolling`, where tiled windows form a horizontal tape per workspace), enable the vertical strip overview:
+
+```json
+{
+  "overview": {
+    "scrolling": {
+      "enable": true,
+      "workspaceCount": 10
+    }
+  }
+}
+```
+
+Workspaces stack vertically (mouse wheel or j/k to move between rows); click a window preview to focus it, middle-click to close it, click a workspace tile to switch. Each scrolling workspace's tape is rendered scaled to fit its tile, and each workspace is placed according to its own layout — so mixed setups (per-workspace layout rules) render correctly in both this mode and the classic grid, with no restart needed after toggling a workspace's layout.
+
 ### Workspace Grid
 
 > **2D workspace grids (hyprkool-style):** true 2D grids with named activities aren't built in — this overview maps Hyprland's linear workspace ids onto rows/columns. See [shinkuan's fork](https://github.com/shinkuan/quickshell-overview/tree/hyprkool) for a working setup: a [KGrid Lua engine](https://github.com/shinkuan/dotfiles/commit/4bccfa6f60d46db6be420a866e03ac1a998b94aa) in the Hyprland config creates `activity:(x y)`-named workspaces, and [his overview changes](https://github.com/shinkuan/quickshell-overview/commit/390295d765ac73776830b051bcac23e73e607809) make the overview read and switch them (no hyprkool needed on Hyprland 0.55+). Expect to maintain the patch yourself, it's a personal setup.
