@@ -119,6 +119,7 @@ Singleton {
             property bool includeInactiveMonitorPreviews: root.readBool("overview.includeInactiveMonitorPreviews", true)
             property int previewRecaptureDelayMs: root.readInt("overview.previewRecaptureDelayMs", 60)
             property bool showSpecialWorkspaces: root.readBool("overview.showSpecialWorkspaces", true)
+            property bool showNamedWorkspaces: root.readBool("overview.showNamedWorkspaces", true)
             property var specialWorkspaces: root.read("overview.specialWorkspaces", [])
             property int specialWorkspaceColumns: root.readInt("overview.specialWorkspaceColumns", columns)
             property string emptyWorkspaceWallpaper: root.readString("overview.emptyWorkspaceWallpaper", "")

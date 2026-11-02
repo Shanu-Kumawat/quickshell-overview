@@ -45,6 +45,7 @@ Item {
     property string emptyWorkspaceWallpaperPath: Config.options.overview.emptyWorkspaceWallpaper
     property string specialEmptyWorkspaceWallpaperPath: Config.options.overview.specialEmptyWorkspaceWallpaper
     property bool showSpecialWorkspaces: Config.options.overview.showSpecialWorkspaces
+    property bool showNamedWorkspaces: Config.options.overview.showNamedWorkspaces
     property var configuredSpecialWorkspaces: Config.options.overview.specialWorkspaces ?? []
     property int specialWorkspaceColumns: Math.max(1, Config.options.overview.specialWorkspaceColumns)
     property real panelOpacity: Math.max(0, Math.min(1, Config.options.overview.effects.panelOpacity))
@@ -116,6 +117,19 @@ Item {
         for (const name of specialWorkspaceNamesFromWindows)
             pushUnique(name);
 
+        return out;
+    }
+
+    readonly property var visibleNamedWorkspaces: {
+        const out = [];
+        for (const ws of (allWorkspaces ?? [])) {
+            if (!root.isNamedWorkspace(ws?.id, ws?.name))
+                continue;
+            // Same string as stripWorkspaceSelector() builds from a window's workspace name
+            const selector = `name:${ws.name}`;
+            if (!out.includes(selector))
+                out.push(selector);
+        }
         return out;
     }
 
@@ -217,9 +231,15 @@ Item {
         const relX = (windowData.at[0] ?? 0) - (sourceMonitor?.x ?? 0) - (sourceMonitor?.reserved?.[0] ?? 0);
         const relY = (windowData.at[1] ?? 0) - (sourceMonitor?.y ?? 0) - (sourceMonitor?.reserved?.[1] ?? 0);
         // Keep the window's position relative to the workspace it lands on;
-        // special workspaces live on the source monitor
+        // special workspaces live on the source monitor, named ones on their own
         let targetMonitor = sourceMonitor;
-        if (!targetSpecialWorkspace) {
+        if (targetSpecialWorkspace.startsWith("name:")) {
+            const targetName = targetSpecialWorkspace.slice("name:".length);
+            const targetWs = (allWorkspaces ?? []).find(ws => `${ws?.name ?? ""}` === targetName);
+            const found = HyprlandData.monitors.find(m => m.name === targetWs?.monitor);
+            if (found)
+                targetMonitor = found;
+        } else if (!targetSpecialWorkspace) {
             const found = HyprlandData.monitors.find(m => m.activeWorkspace?.id === targetWorkspaceId);
             if (found)
                 targetMonitor = found;
@@ -265,9 +285,17 @@ Item {
         return wsName.startsWith("special:");
     }
 
+    // Named workspaces have no id in Hyprland 0.57 and a negative one in older versions
+    function isNamedWorkspace(workspaceId, workspaceName) {
+        const name = `${workspaceName ?? ""}`;
+        return name.length > 0 && !name.startsWith("special:") && !(workspaceId >= 1);
+    }
+
     function stripWorkspaceSelector(windowData) {
         const wsName = `${windowData?.workspace?.name ?? ""}`;
-        return wsName.startsWith("special:") ? wsName : "";
+        if (wsName.startsWith("special:"))
+            return wsName;
+        return root.isNamedWorkspace(windowData?.workspace?.id, wsName) ? `name:${wsName}` : "";
     }
 
     function specialWorkspaceLabel(name) {
@@ -639,6 +667,25 @@ Item {
 
                         }
                     }
+                    }
+                }
+            }
+
+            WorkspaceStrip {
+                overview: root
+                visible: root.showNamedWorkspaces && root.visibleNamedWorkspaces.length > 0
+                title: "Named Workspaces"
+                workspaces: root.visibleNamedWorkspaces
+                columns: Config.options.overview.columns
+                showLabels: true
+                fitToWindows: false
+                onlyCurrentMonitor: false
+                emptyWallpaperPath: root.emptyWorkspaceWallpaperPath
+                onTileClicked: workspace => {
+                    if (Hyprland.usingLua) {
+                        Hyprland.dispatch(`hl.dsp.focus({workspace = '${workspace}'})`);
+                    } else {
+                        Hyprland.dispatch(`workspace ${workspace}`);
                     }
                 }
             }

@@ -14,6 +14,10 @@ Item {
     property var workspaces: []
     property int columns: 1
     property bool showCreateTile: false
+    property bool showLabels: false
+    property bool fitToWindows: true
+    // false shows windows of every monitor on a tile, like the numbered grid
+    property bool onlyCurrentMonitor: true
     property string emptyWallpaperPath: ""
     // Emitted after the overview has already been closed
     signal tileClicked(string workspace)
@@ -29,6 +33,8 @@ Item {
     readonly property int specialWorkspaceRows: Math.ceil(root.totalSpecialTiles / root.effectiveSpecialColumns)
     readonly property real specialWorkspaceAspectCap: {
         let maxAspect = Math.max(1, overview.workspaceImplicitWidth / Math.max(1, overview.workspaceImplicitHeight));
+        if (!root.fitToWindows)
+            return maxAspect;
         for (const name of workspaces) {
             const geometry = overview.specialWorkspaceGeometry(name, overview.monitor?.id);
             const width = geometry?.width;
@@ -109,15 +115,17 @@ Item {
                         id: specialWorkspaceTile
                         required property string modelData
                         property string specialName: modelData
-                        property var specialGeometry: overview.specialWorkspaceGeometry(specialName, overview.monitor?.id)
+                        property var specialGeometry: root.fitToWindows ? overview.specialWorkspaceGeometry(specialName, overview.monitor?.id) : null
                         property color baseColor: ColorUtils.mix(Appearance.colors.colLayer1, Appearance.colors.colLayer0, 0.52)
-                        property bool hasRenderableGeometry: Number.isFinite(specialGeometry?.width)
+                        property bool hasWindowBounds: Number.isFinite(specialGeometry?.width)
                             && Number.isFinite(specialGeometry?.height)
                             && specialGeometry.width > 0
                             && specialGeometry.height > 0
+                        // Without fitToWindows the tile mirrors the monitor, so it needs no window bounds
+                        property bool hasRenderableGeometry: !root.fitToWindows || hasWindowBounds
                         property bool showWallpaper: root.emptyWallpaperPath.length > 0
-                        property real geometryWidth: hasRenderableGeometry ? specialGeometry.width : Math.max(1, overview.workspaceImplicitWidth / overview.scale)
-                        property real geometryHeight: hasRenderableGeometry ? specialGeometry.height : Math.max(1, overview.workspaceImplicitHeight / overview.scale)
+                        property real geometryWidth: hasWindowBounds ? specialGeometry.width : Math.max(1, overview.workspaceImplicitWidth / overview.scale)
+                        property real geometryHeight: hasWindowBounds ? specialGeometry.height : Math.max(1, overview.workspaceImplicitHeight / overview.scale)
                         property real fitScale: hasRenderableGeometry ? Math.min(width / geometryWidth, height / geometryHeight) : overview.scale
                         property real contentWidth: hasRenderableGeometry ? (geometryWidth * fitScale) : width
                         property real contentHeight: hasRenderableGeometry ? (geometryHeight * fitScale) : height
@@ -182,6 +190,22 @@ Item {
                             }
                         }
 
+                        StyledText {
+                            anchors.centerIn: parent
+                            width: parent.width - 2 * root.specialStripPadding
+                            visible: root.showLabels && !specialWorkspaceTile.showWallpaper
+                            text: specialWorkspaceTile.specialName.slice(specialWorkspaceTile.specialName.indexOf(":") + 1)
+                            elide: Text.ElideRight
+                            font {
+                                pixelSize: overview.workspaceNumberSize * overview.scale
+                                weight: Font.DemiBold
+                                family: Appearance.font.family.expressive
+                            }
+                            color: ColorUtils.transparentize(Appearance.colors.colOnLayer1, 0.8)
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
                         Item {
                             id: specialWorkspaceContent
                             x: specialWorkspaceTile.contentOffsetX
@@ -198,7 +222,7 @@ Item {
                                         return ToplevelManager.toplevels.values.filter((toplevel) => {
                                             const address = `0x${toplevel.HyprlandToplevel.address}`;
                                             const win = overview.windowByAddress[address];
-                                            if ((win?.monitor ?? -1) !== (overview.monitor?.id ?? -1))
+                                            if (root.onlyCurrentMonitor && (win?.monitor ?? -1) !== (overview.monitor?.id ?? -1))
                                                 return false;
                                             return overview.stripWorkspaceSelector(win) === specialWorkspaceTile.specialName;
                                         }).sort((a, b) => {
@@ -225,8 +249,8 @@ Item {
                                     availableWorkspaceHeight: specialWorkspaceContent.height
                                     positionBaseX: Number.isFinite(specialWorkspaceTile.specialGeometry?.x) ? specialWorkspaceTile.specialGeometry.x : ((monitor?.x ?? 0) + (monitor?.reserved?.[0] ?? 0))
                                     positionBaseY: Number.isFinite(specialWorkspaceTile.specialGeometry?.y) ? specialWorkspaceTile.specialGeometry.y : ((monitor?.y ?? 0) + (monitor?.reserved?.[1] ?? 0))
-                                    geometryScaleX: specialWorkspaceTile.fitScale / overview.scale
-                                    geometryScaleY: specialWorkspaceTile.fitScale / overview.scale
+                                    geometryScaleX: specialWorkspaceTile.fitScale / overview.scale * specialWindow.widthRatio
+                                    geometryScaleY: specialWorkspaceTile.fitScale / overview.scale * specialWindow.heightRatio
                                     xOffset: 0
                                     yOffset: 0
                                     widgetMonitorId: overview.monitor?.id ?? -1
