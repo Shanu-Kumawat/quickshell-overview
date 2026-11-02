@@ -15,6 +15,7 @@ Item {
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(panelWindow.screen)
     readonly property var toplevels: ToplevelManager.toplevels
     readonly property int effectiveActiveWorkspaceId: Math.max(1, Math.min(100, monitor?.activeWorkspace?.id ?? 1))
+    readonly property bool activeWorkspaceHasNumber: (root.monitor?.activeWorkspace?.id ?? 0) >= 1
     readonly property int workspacesShown: Config.options.overview.rows * Config.options.overview.columns
     readonly property bool useWorkspaceMap: Config.options.overview.useWorkspaceMap
     readonly property var workspaceMap: Config.options.overview.workspaceMap
@@ -677,6 +678,7 @@ Item {
                 title: "Named Workspaces"
                 workspaces: root.visibleNamedWorkspaces
                 columns: Config.options.overview.columns
+                activeWorkspace: root.activeWorkspaceHasNumber ? "" : `name:${root.monitor?.activeWorkspace?.name ?? ""}`
                 showLabels: true
                 fitToWindows: false
                 onlyCurrentMonitor: false
@@ -895,6 +897,7 @@ Item {
 
             Rectangle { // Focused workspace indicator
                 id: focusedWorkspaceIndicator
+                visible: root.activeWorkspaceHasNumber || GlobalStates.overviewSelectedWorkspaceId >= 0
                 // Keyboard selection (Tab / arrows) moves the indicator; -1 follows the active workspace
                 property int indicatorWorkspaceId: GlobalStates.overviewSelectedWorkspaceId >= 0
                     ? GlobalStates.overviewSelectedWorkspaceId

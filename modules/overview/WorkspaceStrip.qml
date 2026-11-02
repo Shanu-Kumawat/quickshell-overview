@@ -19,6 +19,7 @@ Item {
     // false shows windows of every monitor on a tile, like the numbered grid
     property bool onlyCurrentMonitor: true
     property string emptyWallpaperPath: ""
+    property string activeWorkspace: ""
     // Emitted after the overview has already been closed
     signal tileClicked(string workspace)
 
@@ -131,6 +132,7 @@ Item {
                         property real contentHeight: hasRenderableGeometry ? (geometryHeight * fitScale) : height
                         property real contentOffsetX: Math.max(0, (width - contentWidth) / 2)
                         property real contentOffsetY: Math.max(0, (height - contentHeight) / 2)
+                        property bool isActive: root.activeWorkspace.length > 0 && modelData === root.activeWorkspace
                         implicitWidth: root.specialWorkspaceTileWidth
                         implicitHeight: root.specialWorkspaceTileHeight
                         radius: Appearance.rounding.screenRounding * overview.scale
@@ -372,6 +374,15 @@ Item {
                                     }
                                 }
                             }
+                        }
+
+                        Rectangle { // Active workspace outline, above wallpaper, tint and windows
+                            anchors.fill: parent
+                            visible: specialWorkspaceTile.isActive
+                            color: "transparent"
+                            radius: parent.radius
+                            border.width: 2
+                            border.color: overview.activeBorderColor
                         }
                     }
                 }
