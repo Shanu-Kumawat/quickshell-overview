@@ -59,7 +59,7 @@ Item {
 
     property int draggingFromWorkspace: -1
     property int draggingTargetWorkspace: -1
-    property string draggingTargetSpecialWorkspace: ""
+    property string draggingTargetStripWorkspace: ""
     property int previewRecaptureToken: 0
     property var allWorkspaces: HyprlandData.allWorkspaces
     property bool previewsEnabled: Config.options.overview.previewsEnabled
@@ -265,13 +265,9 @@ Item {
         return wsName.startsWith("special:");
     }
 
-    function specialWorkspaceName(windowData) {
+    function stripWorkspaceSelector(windowData) {
         const wsName = `${windowData?.workspace?.name ?? ""}`;
-        return wsName.startsWith("special:") ? wsName.slice(8) : "";
-    }
-
-    function specialWorkspaceIndex(name) {
-        return visibleSpecialWorkspaces.indexOf(`${name ?? ""}`);
+        return wsName.startsWith("special:") ? wsName : "";
     }
 
     function specialWorkspaceLabel(name) {
@@ -329,8 +325,8 @@ Item {
         return pinned + floating + focus;
     }
 
-    function specialWorkspaceGeometry(name, monitorId) {
-        const trimmedName = `${name ?? ""}`.trim();
+    function specialWorkspaceGeometry(selector, monitorId) {
+        const trimmedSelector = `${selector ?? ""}`.trim();
         const currentMonitorId = monitorId ?? -1;
         let minX = null;
         let minY = null;
@@ -341,7 +337,7 @@ Item {
             const win = windowByAddress[addr];
             if ((win?.monitor ?? -1) !== currentMonitorId)
                 continue;
-            if (root.specialWorkspaceName(win) !== trimmedName)
+            if (root.stripWorkspaceSelector(win) !== trimmedSelector)
                 continue;
 
             const atX = win?.at?.[0];
@@ -631,7 +627,7 @@ Item {
                                 anchors.fill: parent
                                 onEntered: {
                                     root.draggingTargetWorkspace = workspaceValue
-                                    root.draggingTargetSpecialWorkspace = ""
+                                    root.draggingTargetStripWorkspace = ""
                                     if (root.draggingFromWorkspace == root.draggingTargetWorkspace) return;
                                     hoveredWhileDragging = true
                                 }
@@ -651,15 +647,16 @@ Item {
                 overview: root
                 visible: root.showSpecialWorkspaces
                 title: "Special Workspaces"
-                workspaces: root.visibleSpecialWorkspaces
+                workspaces: root.visibleSpecialWorkspaces.map(name => `special:${name}`)
                 columns: root.specialWorkspaceColumns
                 showCreateTile: true
                 emptyWallpaperPath: root.specialEmptyWorkspaceWallpaperPath
                 onTileClicked: workspace => {
+                    const name = workspace.slice("special:".length);
                     if (Hyprland.usingLua) {
-                        Hyprland.dispatch(`hl.dsp.workspace.toggle_special('${workspace}')`);
+                        Hyprland.dispatch(`hl.dsp.workspace.toggle_special('${name}')`);
                     } else {
-                        Hyprland.dispatch(`togglespecialworkspace ${workspace}`);
+                        Hyprland.dispatch(`togglespecialworkspace ${name}`);
                     }
                 }
             }
@@ -769,7 +766,7 @@ Item {
                         drag.target: parent
                         onPressed: (mouse) => {
                             root.draggingFromWorkspace = windowData?.workspace.id
-                            root.draggingTargetSpecialWorkspace = ""
+                            root.draggingTargetStripWorkspace = ""
                             window.pressed = true
                             window.Drag.active = true
                             window.Drag.source = window
@@ -778,12 +775,12 @@ Item {
                         }
                         onReleased: {
                             const targetWorkspace = root.draggingTargetWorkspace
-                            const targetSpecialWorkspace = root.draggingTargetSpecialWorkspace
+                            const targetSpecialWorkspace = root.draggingTargetStripWorkspace
                             window.pressed = false
                             window.Drag.active = false
                             root.draggingFromWorkspace = -1
                             root.draggingTargetWorkspace = -1
-                            root.draggingTargetSpecialWorkspace = ""
+                            root.draggingTargetStripWorkspace = ""
                             if (targetSpecialWorkspace === root.createSpecialWorkspaceTarget) {
                                 const createdName = root.nextSpecialWorkspaceName()
                                 root.captureFloatingForMove(window.windowData, -1, createdName)
@@ -795,13 +792,13 @@ Item {
                                 }
                                 updateWindowPosition.restart()
                             }
-                            else if (targetSpecialWorkspace && targetSpecialWorkspace !== root.specialWorkspaceName(windowData)) {
+                            else if (targetSpecialWorkspace && targetSpecialWorkspace !== root.stripWorkspaceSelector(windowData)) {
                                 root.captureFloatingForMove(window.windowData, -1, targetSpecialWorkspace)
                                 // Idk
                                 if (Hyprland.usingLua) {
-                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
+                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetSpecialWorkspace}', follow = false, window = 'address:${window.windowData?.address}'})`);
                                 } else {
-                                    Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${window.windowData?.address}`)
+                                    Hyprland.dispatch(`movetoworkspacesilent ${targetSpecialWorkspace}, address:${window.windowData?.address}`)
                                 }
                                 updateWindowPosition.restart()
                             }

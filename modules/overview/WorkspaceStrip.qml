@@ -163,7 +163,7 @@ Item {
                             anchors.fill: parent
                             acceptedButtons: Qt.LeftButton
                             onClicked: {
-                                if (overview.draggingTargetWorkspace === -1 && !overview.draggingTargetSpecialWorkspace) {
+                                if (overview.draggingTargetWorkspace === -1 && !overview.draggingTargetStripWorkspace) {
                                     GlobalStates.overviewOpen = false;
                                     root.tileClicked(specialWorkspaceTile.specialName);
                                 }
@@ -174,11 +174,11 @@ Item {
                             anchors.fill: parent
                             onEntered: {
                                 overview.draggingTargetWorkspace = -1;
-                                overview.draggingTargetSpecialWorkspace = specialWorkspaceTile.specialName;
+                                overview.draggingTargetStripWorkspace = specialWorkspaceTile.specialName;
                             }
                             onExited: {
-                                if (overview.draggingTargetSpecialWorkspace === specialWorkspaceTile.specialName)
-                                    overview.draggingTargetSpecialWorkspace = "";
+                                if (overview.draggingTargetStripWorkspace === specialWorkspaceTile.specialName)
+                                    overview.draggingTargetStripWorkspace = "";
                             }
                         }
 
@@ -200,7 +200,7 @@ Item {
                                             const win = overview.windowByAddress[address];
                                             if ((win?.monitor ?? -1) !== (overview.monitor?.id ?? -1))
                                                 return false;
-                                            return overview.specialWorkspaceName(win) === specialWorkspaceTile.specialName;
+                                            return overview.stripWorkspaceSelector(win) === specialWorkspaceTile.specialName;
                                         }).sort((a, b) => {
                                             const addrA = `0x${a.HyprlandToplevel.address}`;
                                             const addrB = `0x${b.HyprlandToplevel.address}`;
@@ -262,7 +262,7 @@ Item {
                                         drag.target: parent
                                         onPressed: (mouse) => {
                                             overview.draggingFromWorkspace = -1
-                                            overview.draggingTargetSpecialWorkspace = ""
+                                            overview.draggingTargetStripWorkspace = ""
                                             specialWindow.pressed = true
                                             specialWindow.dragInProgress = true
                                             specialWindow.Drag.source = specialWindow
@@ -273,13 +273,13 @@ Item {
                                         }
                                         onReleased: {
                                             const targetWorkspace = overview.draggingTargetWorkspace
-                                            const targetSpecialWorkspace = overview.draggingTargetSpecialWorkspace
+                                            const targetSpecialWorkspace = overview.draggingTargetStripWorkspace
                                             specialWindow.pressed = false
                                             specialWindow.Drag.active = false
                                             specialWindow.dragInProgress = false
                                             overview.draggingFromWorkspace = -1
                                             overview.draggingTargetWorkspace = -1
-                                            overview.draggingTargetSpecialWorkspace = ""
+                                            overview.draggingTargetStripWorkspace = ""
                                             if (targetSpecialWorkspace === overview.createSpecialWorkspaceTarget) {
                                                 const createdName = overview.nextSpecialWorkspaceName()
                                                 overview.captureFloatingForMove(specialWindow.windowData, -1, createdName)
@@ -296,9 +296,9 @@ Item {
                                                 overview.captureFloatingForMove(specialWindow.windowData, -1, targetSpecialWorkspace)
                                                 // Idk
                                                 if (Hyprland.usingLua) {
-                                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = 'special:${targetSpecialWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
+                                                    Hyprland.dispatch(`hl.dsp.window.move({workspace = '${targetSpecialWorkspace}', follow = false, window = 'address:${specialWindow.windowData?.address}'})`);
                                                 } else {
-                                                    Hyprland.dispatch(`movetoworkspacesilent special:${targetSpecialWorkspace}, address:${specialWindow.windowData?.address}`)
+                                                    Hyprland.dispatch(`movetoworkspacesilent ${targetSpecialWorkspace}, address:${specialWindow.windowData?.address}`)
                                                 }
                                                 specialWindow.returnToHomeParent()
                                                 specialWindow.rebindPosition()
@@ -362,10 +362,10 @@ Item {
                         overview.glassMode
                             ? ColorUtils.mix(Appearance.colors.colSecondaryContainer, Appearance.colors.colLayer1, 0.58)
                             : ColorUtils.mix(Appearance.colors.colLayer2, Appearance.colors.colLayer1, 0.55),
-                        overview.draggingTargetSpecialWorkspace === overview.createSpecialWorkspaceTarget ? 0.90 : overview.effectiveWorkspaceOpacity
+                        overview.draggingTargetStripWorkspace === overview.createSpecialWorkspaceTarget ? 0.90 : overview.effectiveWorkspaceOpacity
                     )
                     border.width: 1
-                    border.color: overview.draggingTargetSpecialWorkspace === overview.createSpecialWorkspaceTarget
+                    border.color: overview.draggingTargetStripWorkspace === overview.createSpecialWorkspaceTarget
                         ? ColorUtils.applyAlpha(overview.activeBorderColor, 0.96)
                         : ColorUtils.applyAlpha(Appearance.colors.colSecondary, 0.46)
 
@@ -388,7 +388,7 @@ Item {
                             overview.glassMode
                                 ? ColorUtils.mix(Appearance.colors.colSecondaryContainer, Appearance.colors.colLayer0, 0.40)
                                 : ColorUtils.mix(Appearance.colors.colLayer2, Appearance.colors.colLayer1, 0.55),
-                            overview.draggingTargetSpecialWorkspace === overview.createSpecialWorkspaceTarget
+                            overview.draggingTargetStripWorkspace === overview.createSpecialWorkspaceTarget
                                 ? Math.min(0.28, overview.emptyWorkspaceWallpaperOverlayOpacity + 0.08)
                                 : overview.emptyWorkspaceWallpaperOverlayOpacity
                         )
@@ -410,9 +410,9 @@ Item {
                         StyledText {
                             anchors.horizontalCenter: parent.horizontalCenter
                             visible: !createSpecialWorkspaceTile.showWallpaper
-                            text: overview.draggingTargetSpecialWorkspace === overview.createSpecialWorkspaceTarget ? "Release" : "+"
+                            text: overview.draggingTargetStripWorkspace === overview.createSpecialWorkspaceTarget ? "Release" : "+"
                             font.family: Appearance.font.family.expressive
-                            font.pixelSize: overview.draggingTargetSpecialWorkspace === overview.createSpecialWorkspaceTarget
+                            font.pixelSize: overview.draggingTargetStripWorkspace === overview.createSpecialWorkspaceTarget
                                 ? Appearance.font.pixelSize.larger * overview.scale
                                 : Appearance.font.pixelSize.huge * 1.25 * overview.scale
                             font.weight: Font.DemiBold
@@ -439,11 +439,11 @@ Item {
                         anchors.fill: parent
                         onEntered: {
                             overview.draggingTargetWorkspace = -1;
-                            overview.draggingTargetSpecialWorkspace = overview.createSpecialWorkspaceTarget;
+                            overview.draggingTargetStripWorkspace = overview.createSpecialWorkspaceTarget;
                         }
                         onExited: {
-                            if (overview.draggingTargetSpecialWorkspace === overview.createSpecialWorkspaceTarget)
-                                overview.draggingTargetSpecialWorkspace = "";
+                            if (overview.draggingTargetStripWorkspace === overview.createSpecialWorkspaceTarget)
+                                overview.draggingTargetStripWorkspace = "";
                         }
                     }
                 }
