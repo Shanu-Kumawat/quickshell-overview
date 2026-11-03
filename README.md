@@ -289,6 +289,7 @@ Edit `~/.config/quickshell/overview/config.json`:
     "includeInactiveMonitorPreviews": true,
     "previewRecaptureDelayMs": 60,
     "showSpecialWorkspaces": true,
+    "showNamedWorkspaces": true,
     "specialWorkspaces": [],
     "specialWorkspaceColumns": 5,
     "emptyWorkspaceWallpaper": "",
@@ -422,6 +423,30 @@ Interaction behavior:
 Normal workspace scrolling:
 - Scroll on the normal workspace grid to move the active workspace/highlighter across all normal workspaces
 - Scrolling wraps from the last workspace back to `1`, and from `1` back to the last
+
+### Named Workspaces
+
+```json
+{
+  "overview": {
+    "showNamedWorkspaces": true
+  }
+}
+```
+
+- `showNamedWorkspaces`: renders named workspaces in a strip under the normal grid
+
+Interaction behavior:
+- Named workspaces (`name:<name>`, for example `name:notes`) have no number, so the numbered grid cannot show them
+- The named strip shows named workspaces from all monitors, like the grid
+- Windows from other monitors are faded, like in the grid
+- The strip is hidden while no named workspace exists
+- Each tile shows the workspace name
+- Each tile mirrors the current monitor, so windows sit where they are on screen
+- The strip has as many columns as the grid
+- Click a named tile to run `workspace name:<name>`
+- Drag a window onto a named tile to move it with `movetoworkspacesilent name:<name>`
+- Drag a window from a named tile back to the grid or onto a special tile
 
 ### Workspace Wallpaper
 
@@ -589,6 +614,7 @@ Low-memory preset:
     "includeInactiveMonitorPreviews": true,
     "previewRecaptureDelayMs": 60,
     "showSpecialWorkspaces": true,
+    "showNamedWorkspaces": true,
     "specialWorkspaces": [],
     "specialWorkspaceColumns": 5,
     "emptyWorkspaceWallpaper": "",
@@ -743,6 +769,7 @@ The following features were removed to make it standalone:
     └── overview/
         ├── Overview.qml          # Main overview component
         ├── OverviewWidget.qml    # Workspace grid widget
+        ├── WorkspaceStrip.qml    # Strip of special or named workspaces
         └── OverviewWindow.qml    # Individual window preview
 ```
 
