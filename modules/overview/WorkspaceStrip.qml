@@ -358,7 +358,7 @@ Item {
                                                 event.accepted = true;
                                             } else if (event.button === Qt.MiddleButton) {
                                                 if (Hyprland.usingLua) {
-                                                    Hyprland.dispatch(`hl.dsp.window.close('address:${windowData.address}')`);
+                                                    Hyprland.dispatch(`hl.dsp.window.close({ window = 'address:${windowData.address}' })`);
                                                 } else {
                                                     Hyprland.dispatch(`closewindow address:${windowData.address}`);
                                                 }
