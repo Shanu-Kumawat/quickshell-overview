@@ -1,0 +1,19 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  qmllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt6 tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-layouts qt6-declarative-dev
+      - name: qmllint
+        run: |
+          find . -name "*.qml" -not -path "./.git/*" -print0 | xargs -0 qmllint

@@ -6,6 +6,8 @@ A standalone workspace overview module for Hyprland using Quickshell - shows all
 
 ![Quickshell](https://img.shields.io/badge/Quickshell-0.2.0-blue?style=flat-square)
 ![Hyprland](https://img.shields.io/badge/Hyprland-Compatible-purple?style=flat-square)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/Shanu-Kumawat/quickshell-overview?style=flat-square)](https://github.com/Shanu-Kumawat/quickshell-overview/graphs/contributors)
 ![Qt6](https://img.shields.io/badge/Qt-6-green?style=flat-square)
 ![License](https://img.shields.io/badge/License-GPL-orange?style=flat-square)
 
@@ -829,3 +831,7 @@ Adapted as a standalone component for Hyprland + Quickshell users who want just 
 Made with ❤️ for the Hyprland community
 
 </div>
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
