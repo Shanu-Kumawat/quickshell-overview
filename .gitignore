@@ -2,3 +2,7 @@
 # for nixos :
 result
 .direnv
+
+# local research material and personal config
+hyprland_docs/
+config.json

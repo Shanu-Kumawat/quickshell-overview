@@ -17,6 +17,9 @@ Singleton {
     property var windowByAddress: ({})
     property var workspaces: []
     property var allWorkspaces: []
+    // Per-workspace tiling layout ("scrolling", "dwindle", ...); Hyprland
+    // allows mixing them via per-workspace rules
+    property var layoutByWorkspace: ({})
     property var workspaceIds: []
     property var workspaceById: ({})
     property var activeWorkspace: null
@@ -91,6 +94,17 @@ Singleton {
         }
     }
 
+    // Focused (top of focus history) tiled window of a workspace; falls back
+    // to the leftmost one. Anchors the tape slice of scrolling workspaces.
+    function focusedWindowOfWorkspaceId(workspaceId) {
+        const inWs = root.windowList.filter(w =>
+            !w.floating && w.workspace?.id === workspaceId && (w.hidden ?? false) === false);
+        if (inWs.length === 0)
+            return null;
+        const focused = inWs.find(w => w.focusHistoryID === 0);
+        return focused ?? inWs.reduce((a, b) => ((a.at?.[0] ?? 0) <= (b.at?.[0] ?? 0) ? a : b));
+    }
+
     function biggestWindowForWorkspace(workspaceId) {
         const windowsInThisWorkspace = HyprlandData.windowList.filter(w => w.workspace.id == workspaceId);
         return windowsInThisWorkspace.reduce((maxWin, win) => {
@@ -119,7 +133,10 @@ Singleton {
             }
 
             if (eventName === "workspace" || eventName === "workspacev2" || eventName === "focusedmon" || eventName === "focusedmonv2" || eventName === "activewindow" || eventName === "activewindowv2") {
-                scheduleUpdates(false, false, false, true, true);
+                // activewindow must also refresh the client list: scrolling
+                // workspace anchors read focusHistoryID, and focus changes
+                // within a workspace only arrive as activewindow events
+                scheduleUpdates(true, false, false, true, true);
                 return;
             }
 
@@ -210,6 +227,12 @@ Singleton {
                 }
                 root.allWorkspaces = rawWorkspaces;
                 root.workspaces = rawWorkspaces.filter(ws => ws.id >= 1 && ws.id <= 100);
+                let tempLayoutByWorkspace = {};
+                for (var i = 0; i < rawWorkspaces.length; ++i) {
+                    var ws = rawWorkspaces[i];
+                    tempLayoutByWorkspace[ws.id] = `${ws.tiledLayout ?? ""}`;
+                }
+                root.layoutByWorkspace = tempLayoutByWorkspace;
                 let tempWorkspaceById = {};
                 for (var i = 0; i < root.workspaces.length; ++i) {
                     var ws = root.workspaces[i];

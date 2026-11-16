@@ -42,12 +42,67 @@ Item { // Window
     property real initX: Math.max(((windowData?.at?.[0] ?? 0) - positionBaseX) * root.scale * geometryScaleX, 0) + xOffset
     property real initY: Math.max(((windowData?.at?.[1] ?? 0) - positionBaseY) * root.scale * geometryScaleY, 0) + yOffset
 
+    // Per-workspace placement: Hyprland allows mixing layouts via
+    // per-workspace rules, so each window is placed according to its own
+    // workspace's layout. Scrolling workspaces render as a tape scaled to
+    // fit the tile; other layouts use raw positions.
+    readonly property bool scrollingPlacement: (HyprlandData.layoutByWorkspace[windowData?.workspace?.id] ?? "") === "scrolling"
+
+    readonly property var wsFocused: scrollingPlacement ? HyprlandData.focusedWindowOfWorkspaceId(windowData?.workspace?.id) : null
+    // Extent of the workspace's tape, scaled to fit the tile
+    readonly property var tapeBounds: {
+        if (!scrollingPlacement)
+            return null;
+        const wsId = windowData?.workspace?.id;
+        const wins = HyprlandData.windowList.filter(w => !w.floating && w.workspace?.id === wsId && !(w.hidden ?? false));
+        if (wins.length === 0)
+            return null;
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const w of wins) {
+            const x0 = (w.at?.[0] ?? 0) - positionBaseX;
+            const y0 = (w.at?.[1] ?? 0) - positionBaseY;
+            if (x0 < minX) minX = x0;
+            if (x0 + (w.size?.[0] ?? 0) > maxX) maxX = x0 + (w.size?.[0] ?? 0);
+            if (y0 < minY) minY = y0;
+            if (y0 + (w.size?.[1] ?? 0) > maxY) maxY = y0 + (w.size?.[1] ?? 0);
+        }
+        return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
+    }
+    readonly property real tapeFit: {
+        if (!tapeBounds)
+            return 1;
+        const rawW = Math.max(1, tapeBounds.maxX - tapeBounds.minX) * scale * widthRatio;
+        const rawH = Math.max(1, tapeBounds.maxY - tapeBounds.minY) * scale * heightRatio;
+        return Math.min(1, (availableWorkspaceWidth ?? 0) / rawW, (availableWorkspaceHeight ?? 0) / rawH);
+    }
+    readonly property real scrollingX: {
+        const sx = scale * widthRatio;
+        if (windowData?.floating)
+            return xOffset + Math.max((windowData?.at?.[0] ?? 0) - positionBaseX, 0) * sx * tapeFit;
+        if (!tapeBounds)
+            return xOffset + (availableWorkspaceWidth - Math.min(targetWindowWidth, availableWorkspaceWidth)) / 2;
+        return xOffset + ((windowData?.at?.[0] ?? 0) - positionBaseX - tapeBounds.minX) * sx * tapeFit;
+    }
+    readonly property real scrollingY: {
+        const sy = scale * heightRatio;
+        if (windowData?.floating)
+            return yOffset + Math.max((windowData?.at?.[1] ?? 0) - positionBaseY, 0) * sy * tapeFit;
+        if (!tapeBounds)
+            return yOffset;
+        return yOffset + ((windowData?.at?.[1] ?? 0) - positionBaseY - tapeBounds.minY) * sy * tapeFit;
+    }
+
     // Dragging (drag.target) and imperative x/y writes destroy the x/y
     // bindings for the delegate's lifetime; call this to track initX/initY
     // (and thus fresh windowData) again
     function rebindPosition() {
-        x = Qt.binding(() => initX);
-        y = Qt.binding(() => initY);
+        if (scrollingPlacement) {
+            x = Qt.binding(() => scrollingX);
+            y = Qt.binding(() => scrollingY);
+        } else {
+            x = Qt.binding(() => initX);
+            y = Qt.binding(() => initY);
+        }
     }
     property real xOffset: 0
     property real yOffset: 0
@@ -108,12 +163,17 @@ Item { // Window
     property bool suspendPositionAnimation: false
     property bool animateSize: true
     
-    x: initX
-    y: initY
-    width: Math.min(targetWindowWidth, availableWorkspaceWidth)
-    height: Math.min(targetWindowHeight, availableWorkspaceHeight)
+    x: scrollingPlacement ? scrollingX : initX
+    y: scrollingPlacement ? scrollingY : initY
+    width: scrollingPlacement ? targetWindowWidth * tapeFit : Math.min(targetWindowWidth, availableWorkspaceWidth)
+    height: scrollingPlacement ? targetWindowHeight * tapeFit : Math.min(targetWindowHeight, availableWorkspaceHeight)
     opacity: (windowData?.monitor ?? -1) == widgetMonitorId ? 1 : Config.options.windowPreview.inactiveMonitorOpacity
     visible: {
+        // Scrolling layout's fullscreen_on_one_column reports fullscreen=1
+        // for ordinary single-window columns — that flag doesn't mean real
+        // fullscreen there, so don't hide siblings because of it
+        if (scrollingPlacement)
+            return true;
         const thisWsId = windowData?.workspace?.id;
         const isFullscreen = (windowData?.fullscreen ?? 0) > 0;
         if (isFullscreen || thisWsId === undefined) return true;

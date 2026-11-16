@@ -6,6 +6,8 @@ A standalone workspace overview module for Hyprland using Quickshell - shows all
 
 ![Quickshell](https://img.shields.io/badge/Quickshell-0.2.0-blue?style=flat-square)
 ![Hyprland](https://img.shields.io/badge/Hyprland-Compatible-purple?style=flat-square)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/Shanu-Kumawat/quickshell-overview?style=flat-square)](https://github.com/Shanu-Kumawat/quickshell-overview/graphs/contributors)
 ![Qt6](https://img.shields.io/badge/Qt-6-green?style=flat-square)
 ![License](https://img.shields.io/badge/License-GPL-orange?style=flat-square)
 
@@ -264,6 +266,23 @@ If you installed from git clone instead of AUR, copy from your repo path:
 ```bash
 cp ~/.config/quickshell/overview/config.example.json ~/.config/quickshell/overview/config.json
 ```
+
+### Scrolling Layout Mode
+
+If you use Hyprland's **scrolling** layout (`general:layout = scrolling`, where tiled windows form a horizontal tape per workspace), enable the vertical strip overview:
+
+```json
+{
+  "overview": {
+    "scrolling": {
+      "enable": true,
+      "workspaceCount": 10
+    }
+  }
+}
+```
+
+Workspaces stack vertically (mouse wheel or j/k to move between rows); click a window preview to focus it, middle-click to close it, click a workspace tile to switch. Each scrolling workspace's tape is rendered scaled to fit its tile, and each workspace is placed according to its own layout — so mixed setups (per-workspace layout rules) render correctly in both this mode and the classic grid, with no restart needed after toggling a workspace's layout.
 
 ### Workspace Grid
 
@@ -812,3 +831,7 @@ Adapted as a standalone component for Hyprland + Quickshell users who want just 
 Made with ❤️ for the Hyprland community
 
 </div>
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

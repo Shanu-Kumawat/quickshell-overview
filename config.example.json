@@ -49,7 +49,10 @@
     "hideEmptyRows": true,
     "closeOnFocusLoss": true,
     "useWorkspaceMap": false,
-    "workspaceMap": [0, 10],
+    "workspaceMap": [
+      0,
+      10
+    ],
     "orderRightLeft": false,
     "orderBottomUp": false,
     "previewsEnabled": true,
@@ -60,6 +63,10 @@
     "showNamedWorkspaces": true,
     "specialWorkspaces": [],
     "specialWorkspaceColumns": 5,
+    "scrolling": {
+      "enable": false,
+      "workspaceCount": 10
+    },
     "emptyWorkspaceWallpaper": "",
     "specialEmptyWorkspaceWallpaper": "",
     "effects": {
