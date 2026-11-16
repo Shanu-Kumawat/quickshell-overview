@@ -49,7 +49,9 @@ Item { // Window
     readonly property bool scrollingPlacement: (HyprlandData.layoutByWorkspace[windowData?.workspace?.id] ?? "") === "scrolling"
 
     readonly property var wsFocused: scrollingPlacement ? HyprlandData.focusedWindowOfWorkspaceId(windowData?.workspace?.id) : null
-    // Extent of the workspace's tape, scaled to fit the tile
+    // Extent of the workspace's tape, scaled to fit the tile. Starts as the
+    // monitor's work area (what the tile represents) so window gaps survive
+    // and only a tape running off screen shrinks to fit.
     readonly property var tapeBounds: {
         if (!scrollingPlacement)
             return null;
@@ -57,7 +59,12 @@ Item { // Window
         const wins = HyprlandData.windowList.filter(w => !w.floating && w.workspace?.id === wsId && !(w.hidden ?? false));
         if (wins.length === 0)
             return null;
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        const rotated = (monitorData?.transform ?? 0) % 2 === 1;
+        const reserved = monitorData?.reserved ?? [0, 0, 0, 0];
+        const monScale = monitorData?.scale ?? 1;
+        const workW = ((rotated ? monitorData?.height : monitorData?.width) ?? 0) / monScale - reserved[0] - reserved[2];
+        const workH = ((rotated ? monitorData?.width : monitorData?.height) ?? 0) / monScale - reserved[1] - reserved[3];
+        let minX = 0, maxX = workW, minY = 0, maxY = workH;
         for (const w of wins) {
             const x0 = (w.at?.[0] ?? 0) - positionBaseX;
             const y0 = (w.at?.[1] ?? 0) - positionBaseY;
@@ -78,7 +85,7 @@ Item { // Window
     readonly property real scrollingX: {
         const sx = scale * widthRatio;
         if (windowData?.floating)
-            return xOffset + Math.max((windowData?.at?.[0] ?? 0) - positionBaseX, 0) * sx * tapeFit;
+            return xOffset + (Math.max((windowData?.at?.[0] ?? 0) - positionBaseX, 0) - (tapeBounds?.minX ?? 0)) * sx * tapeFit;
         if (!tapeBounds)
             return xOffset + (availableWorkspaceWidth - Math.min(targetWindowWidth, availableWorkspaceWidth)) / 2;
         return xOffset + ((windowData?.at?.[0] ?? 0) - positionBaseX - tapeBounds.minX) * sx * tapeFit;
@@ -86,7 +93,7 @@ Item { // Window
     readonly property real scrollingY: {
         const sy = scale * heightRatio;
         if (windowData?.floating)
-            return yOffset + Math.max((windowData?.at?.[1] ?? 0) - positionBaseY, 0) * sy * tapeFit;
+            return yOffset + (Math.max((windowData?.at?.[1] ?? 0) - positionBaseY, 0) - (tapeBounds?.minY ?? 0)) * sy * tapeFit;
         if (!tapeBounds)
             return yOffset;
         return yOffset + ((windowData?.at?.[1] ?? 0) - positionBaseY - tapeBounds.minY) * sy * tapeFit;
