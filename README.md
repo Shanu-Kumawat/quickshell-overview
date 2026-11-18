@@ -9,7 +9,6 @@ A standalone workspace overview module for Hyprland using Quickshell - shows all
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Contributors](https://img.shields.io/github/contributors/Shanu-Kumawat/quickshell-overview?style=flat-square)](https://github.com/Shanu-Kumawat/quickshell-overview/graphs/contributors)
 ![Qt6](https://img.shields.io/badge/Qt-6-green?style=flat-square)
-![License](https://img.shields.io/badge/License-GPL-orange?style=flat-square)
 
 
 </div>
