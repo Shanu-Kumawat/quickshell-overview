@@ -18,7 +18,7 @@ Scope {
             id: root
             required property var modelData
             readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.screen)
-            property bool monitorIsFocused: (Hyprland.focusedMonitor?.id == monitor?.id)
+            property bool monitorIsFocused: monitor?.id !== undefined && (Hyprland.focusedMonitor?.id === monitor?.id)
             property bool blurEnabled: Config.options.overview.effects.enableBlur
             property bool backdropEnabled: Config.options.overview.effects.enableBackdrop
             property real backdropOpacity: Math.max(0, Math.min(1, Config.options.overview.effects.backdropOpacity))
@@ -54,13 +54,15 @@ Scope {
                 target: GlobalStates
                 function onOverviewOpenChanged() {
                     if (GlobalStates.overviewOpen) {
-                        GlobalStates.overviewSelectedWorkspaceId = -1;
+                        if (!GlobalStates.overviewSuperHeld)
+                            GlobalStates.overviewSelectedWorkspaceId = -1;
                         keyHandler.superHeld = GlobalStates.overviewSuperHeld;
                         delayedGrabTimer.start();
                     } else {
                         // Nothing clears the grab when the overview closes any
                         // other way; a stale grab on a hidden surface is risky
                         grab.active = false;
+                        GlobalStates.overviewSelectedWorkspaceId = -1;
                     }
                 }
             }
@@ -229,11 +231,19 @@ Scope {
 
                     let targetId = null;
 
+                    // Tab and Backtab cycling (e.g. when opened without compositor bind consuming Tab)
+                    const isTab = event.key === Qt.Key_Tab;
+                    const isBacktab = event.key === Qt.Key_Backtab || (isTab && (event.modifiers & Qt.ShiftModifier));
+                    if (isBacktab) {
+                        targetId = minWorkspaceId + (clampedIndex - 1 + workspacesPerGroup) % workspacesPerGroup;
+                    } else if (isTab) {
+                        targetId = minWorkspaceId + (clampedIndex + 1) % workspacesPerGroup;
+                    }
+
                     // Arrow keys and vim-style hjkl.
-                    // NOTE: Tab cycling is handled by the compositor bind calling IPC
-                    // `overview cycle` (binds consume keypresses, so this layer never sees Tab).
-                    const backtabPressed = event.key === Qt.Key_Backtab;
-                    if (event.key === Qt.Key_Left || event.key === Qt.Key_H || backtabPressed) {
+                    // NOTE: Tab cycling is also handled by compositor bind calling IPC
+                    // `overview cycle` (binds consume keypresses, so this layer might not see Tab).
+                    else if (event.key === Qt.Key_Left || event.key === Qt.Key_H) {
                         targetVisualColumn = (targetVisualColumn - 1 + columns) % columns;
                     } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
                         targetVisualColumn = (targetVisualColumn + 1) % columns;
@@ -258,7 +268,7 @@ Scope {
                     }
 
                     if (targetId === null && (
-                        event.key === Qt.Key_Left || event.key === Qt.Key_H || backtabPressed ||
+                        event.key === Qt.Key_Left || event.key === Qt.Key_H ||
                         event.key === Qt.Key_Right || event.key === Qt.Key_L ||
                         event.key === Qt.Key_Up || event.key === Qt.Key_K ||
                         event.key === Qt.Key_Down || event.key === Qt.Key_J
@@ -320,10 +330,10 @@ Scope {
     function cycleSelection(direction) {
         if (!GlobalStates.overviewOpen) {
             GlobalStates.overviewOpen = true;
-            return;
         }
-        const rows = Config.options.overview.rows;
-        const columns = Config.options.overview.columns;
+        const scrollingMode = Config.options.overview.scrolling.enable;
+        const rows = scrollingMode ? Config.options.overview.scrolling.workspaceCount : Config.options.overview.rows;
+        const columns = scrollingMode ? 1 : Config.options.overview.columns;
         const workspacesPerGroup = rows * columns;
         const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
         const workspaceMap = Config.options.overview.workspaceMap ?? [];
