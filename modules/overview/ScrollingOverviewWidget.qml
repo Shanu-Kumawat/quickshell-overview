@@ -20,10 +20,13 @@ Item {
     readonly property int workspaceCount: Math.max(1, Config.options.overview.scrolling.workspaceCount)
     readonly property real scale: Config.options.overview.scale
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(panelWindow.screen)
-    property bool monitorIsFocused: (Hyprland.focusedMonitor?.name == monitor?.name)
+    property bool monitorIsFocused: !!monitor?.name && (Hyprland.focusedMonitor?.name === monitor?.name)
     property var windowByAddress: HyprlandData.windowByAddress
     property var monitorData: HyprlandData.monitors.find(m => m.id === root.monitor?.id)
-    readonly property int effectiveActiveWorkspaceId: Math.max(1, Math.min(100, monitor?.activeWorkspace?.id ?? 1))
+    readonly property bool useWorkspaceMap: Config.options.overview.useWorkspaceMap
+    readonly property var workspaceMap: Config.options.overview.workspaceMap ?? []
+    readonly property int workspaceOffset: useWorkspaceMap ? Number(workspaceMap[root.monitor?.id] ?? 0) : 0
+    readonly property int effectiveActiveWorkspaceId: Math.max(1 + root.workspaceOffset, Math.min(100 + root.workspaceOffset, monitor?.activeWorkspace?.id ?? (1 + root.workspaceOffset)))
     property color activeBorderColor: Appearance.colors.colSecondary
 
     property real workspaceSpacing: Config.options.overview.workspaceSpacing
@@ -32,25 +35,44 @@ Item {
     property int previewRecaptureToken: 0
 
     property real workspaceImplicitWidth: Math.round((monitorData?.transform % 2 === 1) ?
-        ((monitor.height / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) :
-        ((monitor.width / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale))
+        (((monitor?.height ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) :
+        (((monitor?.width ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale))
     property real workspaceImplicitHeight: Math.round((monitorData?.transform % 2 === 1) ?
-        ((monitor.width / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale) :
-        ((monitor.height / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale))
+        (((monitor?.width ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale) :
+        (((monitor?.height ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale))
+
+    readonly property real maxAvailableHeight: panelWindow.screen.height - Config.options.position.topMargin * 2
+    readonly property real totalContentHeight: (workspaceImplicitHeight + workspaceSpacing) * workspaceCount
 
     // Screen-wide so window previews are clickable anywhere in their tile
     implicitWidth: panelWindow.screen.width
-    implicitHeight: (workspaceImplicitHeight + workspaceSpacing) * workspaceCount
+    implicitHeight: Math.min(totalContentHeight, maxAvailableHeight)
     readonly property real stripX: (implicitWidth - workspaceImplicitWidth) / 2
 
     // The row currently in view; the view moves, not the workspaces
     property int viewRow: rowOfId(effectiveActiveWorkspaceId)
-    readonly property real viewY: viewRow * (workspaceImplicitHeight + workspaceSpacing)
+    readonly property real viewY: {
+        const rowY = viewRow * (workspaceImplicitHeight + workspaceSpacing);
+        const centeredY = rowY - (root.height - workspaceImplicitHeight) / 2;
+        return Math.max(0, Math.min(totalContentHeight - root.height, centeredY));
+    }
 
     onEffectiveActiveWorkspaceIdChanged: viewRow = rowOfId(effectiveActiveWorkspaceId)
 
+    Connections {
+        target: GlobalStates
+        function onOverviewSelectedWorkspaceIdChanged() {
+            if (GlobalStates.overviewSelectedWorkspaceId >= 0)
+                root.viewRow = root.rowOfId(GlobalStates.overviewSelectedWorkspaceId);
+        }
+        function onOverviewOpenChanged() {
+            if (GlobalStates.overviewOpen)
+                root.viewRow = root.rowOfId(root.effectiveActiveWorkspaceId);
+        }
+    }
+
     function rowOfId(workspaceId) {
-        return Math.max(0, Math.min(workspaceCount - 1, (workspaceId ?? 1) - 1));
+        return Math.max(0, Math.min(workspaceCount - 1, (workspaceId ?? (1 + root.workspaceOffset)) - 1 - root.workspaceOffset));
     }
 
     function focusWorkspace(workspaceId) {
@@ -77,8 +99,9 @@ Item {
     Flickable {
         id: workspaceFlickable
         anchors.fill: parent
+        clip: true
         contentWidth: root.implicitWidth
-        contentHeight: root.implicitHeight
+        contentHeight: root.totalContentHeight
         contentY: root.viewY
         Behavior on contentY {
             animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
@@ -95,7 +118,7 @@ Item {
                 delegate: Rectangle { // Workspace tile
                     id: workspaceTile
                     required property int index
-                    readonly property int workspaceId: index + 1
+                    readonly property int workspaceId: index + 1 + root.workspaceOffset
                     readonly property bool isSelected: GlobalStates.overviewSelectedWorkspaceId === workspaceId
                     readonly property bool isActive: root.effectiveActiveWorkspaceId === workspaceId
 
@@ -118,7 +141,7 @@ Item {
                         anchors.centerIn: parent
                         text: workspaceTile.workspaceId
                         font {
-                            pixelSize: Math.round(Config.options.overview.workspaceNumberBaseSize * (root.monitorData?.scale ?? 1))
+                            pixelSize: Math.round(Config.options.overview.workspaceNumberBaseSize * (root.monitorData?.scale ?? 1) * root.scale)
                             weight: Font.DemiBold
                             family: Appearance.font.family.expressive
                         }
@@ -131,12 +154,14 @@ Item {
         Repeater { // Window previews (per-workspace placement is OverviewWindow's job)
             model: ScriptModel {
                 values: {
+                    const minWs = 1 + root.workspaceOffset;
+                    const maxWs = root.workspaceCount + root.workspaceOffset;
                     return ToplevelManager.toplevels.values.filter((toplevel) => {
                         const address = `0x${toplevel.HyprlandToplevel?.address}`;
                         const win = root.windowByAddress[address];
                         if (!win)
                             return false;
-                        return win.workspace?.id >= 1 && win.workspace?.id <= root.workspaceCount;
+                        return win.workspace?.id >= minWs && win.workspace?.id <= maxWs;
                     });
                 }
             }
@@ -146,7 +171,7 @@ Item {
                 required property int index
                 required property var modelData
                 property var monitor: HyprlandData.monitors.find(m => m.id === windowData?.monitor)
-                property var address: `0x${modelData.HyprlandToplevel.address}`
+                property var address: `0x${modelData.HyprlandToplevel?.address ?? ""}`
                 windowData: root.windowByAddress[address]
                 toplevel: modelData
                 monitorData: monitor
@@ -208,14 +233,16 @@ Item {
         }
     }
 
-    MouseArea { // wheel: scroll the view (close-on-click handled by Overview.qml)
-        anchors.fill: parent
-        acceptedButtons: Qt.NoButton
-        z: -1
-        onWheel: (wheel) => {
-            const delta = wheel.angleDelta.y > 0 ? -1 : 1;
+    WheelHandler {
+        target: null
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            const deltaY = event.angleDelta.y;
+            if (!deltaY)
+                return;
+            const delta = deltaY > 0 ? -1 : 1;
             root.viewRow = Math.max(0, Math.min(root.workspaceCount - 1, root.viewRow + delta));
-            wheel.accepted = true;
+            event.accepted = true;
         }
     }
 }

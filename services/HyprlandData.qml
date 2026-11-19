@@ -35,20 +35,40 @@ Singleton {
     property bool pendingActiveWorkspaceUpdate: false
 
     function updateWindowList() {
+        if (getClients.running) {
+            pendingWindowsUpdate = true;
+            return;
+        }
         getClients.running = true;
     }
 
     function updateLayers() {
+        if (getLayers.running) {
+            pendingLayersUpdate = true;
+            return;
+        }
         getLayers.running = true;
     }
 
     function updateMonitors() {
+        if (getMonitors.running) {
+            pendingMonitorsUpdate = true;
+            return;
+        }
         getMonitors.running = true;
     }
 
     function updateWorkspaces() {
-        getWorkspaces.running = true;
-        getActiveWorkspace.running = true;
+        if (getWorkspaces.running) {
+            pendingWorkspacesUpdate = true;
+        } else {
+            getWorkspaces.running = true;
+        }
+        if (getActiveWorkspace.running) {
+            pendingActiveWorkspaceUpdate = true;
+        } else {
+            getActiveWorkspace.running = true;
+        }
     }
 
     function updateAll() {
@@ -86,11 +106,17 @@ Singleton {
         }
         if (pendingWorkspacesUpdate) {
             pendingWorkspacesUpdate = false;
-            getWorkspaces.running = true;
+            if (getWorkspaces.running)
+                pendingWorkspacesUpdate = true;
+            else
+                getWorkspaces.running = true;
         }
         if (pendingActiveWorkspaceUpdate) {
             pendingActiveWorkspaceUpdate = false;
-            getActiveWorkspace.running = true;
+            if (getActiveWorkspace.running)
+                pendingActiveWorkspaceUpdate = true;
+            else
+                getActiveWorkspace.running = true;
         }
     }
 
@@ -178,6 +204,11 @@ Singleton {
                 root.windowByAddress = tempWinByAddress;
                 root.addresses = root.windowList.map(win => win.address);
                 root.clientsRevision += 1;
+
+                if (root.pendingWindowsUpdate) {
+                    root.pendingWindowsUpdate = false;
+                    root.updateWindowList();
+                }
             }
         }
     }
@@ -193,6 +224,11 @@ Singleton {
                 } catch (error) {
                     console.warn("overview: failed to parse hyprctl monitors output", error);
                 }
+
+                if (root.pendingMonitorsUpdate) {
+                    root.pendingMonitorsUpdate = false;
+                    root.updateMonitors();
+                }
             }
         }
     }
@@ -207,6 +243,11 @@ Singleton {
                     root.layers = JSON.parse(layersCollector.text);
                 } catch (error) {
                     console.warn("overview: failed to parse hyprctl layers output", error);
+                }
+
+                if (root.pendingLayersUpdate) {
+                    root.pendingLayersUpdate = false;
+                    root.updateLayers();
                 }
             }
         }
@@ -240,6 +281,11 @@ Singleton {
                 }
                 root.workspaceById = tempWorkspaceById;
                 root.workspaceIds = root.workspaces.map(ws => ws.id);
+
+                if (root.pendingWorkspacesUpdate) {
+                    root.pendingWorkspacesUpdate = false;
+                    root.getWorkspaces.running = true;
+                }
             }
         }
     }
@@ -254,6 +300,11 @@ Singleton {
                     root.activeWorkspace = JSON.parse(activeWorkspaceCollector.text);
                 } catch (error) {
                     console.warn("overview: failed to parse hyprctl activeworkspace output", error);
+                }
+
+                if (root.pendingActiveWorkspaceUpdate) {
+                    root.pendingActiveWorkspaceUpdate = false;
+                    root.getActiveWorkspace.running = true;
                 }
             }
         }

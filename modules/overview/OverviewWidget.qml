@@ -21,7 +21,7 @@ Item {
     readonly property var workspaceMap: Config.options.overview.workspaceMap
     readonly property int workspaceOffset: useWorkspaceMap ? Number(workspaceMap[root.monitor?.id] ?? 0) : 0
     readonly property int workspaceGroup: Math.floor((effectiveActiveWorkspaceId - workspaceOffset - 1) / workspacesShown)
-    property bool monitorIsFocused: (Hyprland.focusedMonitor?.name == monitor?.name)
+    property bool monitorIsFocused: !!monitor?.name && (Hyprland.focusedMonitor?.name === monitor?.name)
     property var windows: HyprlandData.windowList
     property var windowByAddress: HyprlandData.windowByAddress
     property var windowAddresses: HyprlandData.addresses
@@ -31,14 +31,14 @@ Item {
     property color activeBorderColor: Appearance.colors.colSecondary
 
     property real workspaceImplicitWidth: Math.round((monitorData?.transform % 2 === 1) ?
-        ((monitor.height / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) :
-        ((monitor.width / monitor.scale - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale))
+        (((monitor?.height ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale) :
+        (((monitor?.width ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[0] ?? 0) - (monitorData?.reserved?.[2] ?? 0)) * root.scale))
     property real workspaceImplicitHeight: Math.round((monitorData?.transform % 2 === 1) ?
-        ((monitor.width / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale) :
-        ((monitor.height / monitor.scale - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale))
+        (((monitor?.width ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale) :
+        (((monitor?.height ?? 0) / (monitor?.scale ?? 1) - (monitorData?.reserved?.[1] ?? 0) - (monitorData?.reserved?.[3] ?? 0)) * root.scale))
 
     property real workspaceNumberMargin: 80
-    property real workspaceNumberSize: Config.options.overview.workspaceNumberBaseSize * monitor.scale
+    property real workspaceNumberSize: Config.options.overview.workspaceNumberBaseSize * (monitor?.scale ?? 1)
     property int workspaceZ: 0
     property int windowZ: 1
     property int windowDraggingZ: 99999
@@ -733,7 +733,7 @@ Item {
                 model: ScriptModel {
                     values: {
                         return ToplevelManager.toplevels.values.filter((toplevel) => {
-                            const address = `0x${toplevel.HyprlandToplevel.address}`
+                            const address = `0x${toplevel.HyprlandToplevel?.address ?? ""}`
                             var win = windowByAddress[address]
                             if (root.isSpecialWorkspace(win))
                                 return false;
@@ -743,8 +743,8 @@ Item {
                             return inWorkspaceGroup;
                         }).sort((a, b) => {
                             // Proper stacking order based on Hyprland's window properties
-                            const addrA = `0x${a.HyprlandToplevel.address}`
-                            const addrB = `0x${b.HyprlandToplevel.address}`
+                            const addrA = `0x${a.HyprlandToplevel?.address ?? ""}`
+                            const addrB = `0x${b.HyprlandToplevel?.address ?? ""}`
                             const winA = windowByAddress[addrA]
                             const winB = windowByAddress[addrB]
 
