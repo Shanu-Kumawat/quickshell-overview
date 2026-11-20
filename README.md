@@ -825,7 +825,7 @@ Adapted as a standalone component for Hyprland + Quickshell users who want just 
 
 <div align="center">
 
-**Note:** Maintenance will be limited due to time constraints, but **PRs and code improvements are welcome!** Feel free to contribute or fork for your own needs.
+Development is independently maintained, and contributions are welcome. I aim to continue improving compatibility, reliability, and functionality as the Hyprland and Quickshell ecosystems evolve.
 
 Made with ❤️ for the Hyprland community
 
