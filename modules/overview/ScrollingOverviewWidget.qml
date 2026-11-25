@@ -31,7 +31,15 @@ Item {
 
     property real workspaceSpacing: Config.options.overview.workspaceSpacing
     property int windowZ: 1
-    // Live previews don't need recapture prompting
+    readonly property bool previewsEnabled: Config.options.overview.previewsEnabled
+    readonly property string previewModeRaw: Config.options.overview.previewMode
+    readonly property string previewMode: {
+        const mode = `${previewModeRaw ?? "live"}`.trim().toLowerCase();
+        return (mode === "event" || mode === "snapshot") ? "event" : "live";
+    }
+    readonly property bool useEventPreviewRefresh: previewsEnabled && previewMode === "event"
+    // Live previews refresh themselves; event-mode snapshots need a nudge
+    // when the windows they show change.
     property int previewRecaptureToken: 0
 
     property real workspaceImplicitWidth: Math.round((monitorData?.transform % 2 === 1) ?
@@ -58,6 +66,23 @@ Item {
     }
 
     onEffectiveActiveWorkspaceIdChanged: viewRow = rowOfId(effectiveActiveWorkspaceId)
+
+    // Mirror the classic grid: in event mode, ScreencopyView holds a single
+    // snapshot until captureSource is reset. Bump the token when a window
+    // opens, closes or moves so delegates recapture their preview.
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (!GlobalStates.overviewOpen || !root.useEventPreviewRefresh)
+                return;
+
+            const eventName = `${event?.name ?? event?.event ?? event?.type ?? ""}`;
+            if (eventName === "closewindow" || eventName === "openwindow" ||
+                eventName === "movewindow" || eventName === "movewindowv2") {
+                root.previewRecaptureToken += 1;
+            }
+        }
+    }
 
     Connections {
         target: GlobalStates
