@@ -46,7 +46,7 @@
         meta = with pkgs.lib; {
           description = "Standalone workspace overview for Hyprland using Quickshell";
           homepage = "https://github.com/Shanu-Kumawat/quickshell-overview";
-          maintainers = with lib.maintainers; [ fsilly ];
+          license = licenses.mit;
           platforms = platforms.linux;
         };
       };
