@@ -368,6 +368,12 @@ Scope {
         function close() {
             GlobalStates.overviewOpen = false;
         }
+        // Re-read config.json on demand. The file is watched for changes, so
+        // this is only needed if an editor replaced it without triggering a
+        // file event or the watcher was lost.
+        function reload() {
+            Config.reload();
+        }
         function open() {
             GlobalStates.overviewSuperHeld = false;
             GlobalStates.overviewOpen = true;

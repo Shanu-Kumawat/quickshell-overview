@@ -38,6 +38,7 @@ https://github.com/user-attachments/assets/e8f392d7-d831-4dec-9cd3-fb93d1ccc21c
 - 💡 Hover tooltips showing window information
 - 🎨 Material Design 3 theming
 - ⚡ Smooth animations and transitions
+- 🔁 Live config reload - edits to `config.json` apply without restarting
 
 ## 📦 Installation
 
@@ -250,8 +251,9 @@ Both modules install the module files for you (no manual `git clone` needed); an
 - `$XDG_CONFIG_HOME/quickshell/overview/config.json`
 - fallback: `~/.config/quickshell/overview/config.json`
 
-> **Note:** After editing `config.json`, manually restart overview for changes to apply:
-> `qs ipc -c overview call overview close && qs -c overview`
+> **Note:** `config.json` is watched for changes, so edits apply without restarting overview. If a change does not show up (for example after an editor replaced the file in a way the watcher missed), run `qs ipc -c overview call overview reload`.
+>
+> A few compositor-level options, such as `overview.effects.enableBlur`, change the layer-shell namespace that the compositor reads when the surface is created. Restart Quickshell if toggling those has no effect.
 
 ### Quick Start
 
@@ -436,7 +438,7 @@ Interaction behavior:
 - Drag a window onto a special tile to move it with `movetoworkspacesilent special:<name>`
 - Drag a window onto the `+` tile to auto-create a new special workspace (`stash`, `stash-2`, ...), even when no special workspace is currently open or preconfigured
 - Special windows are visible directly in those tiles
-- Restart Quickshell after changing `config.json`, otherwise the special workspace list will not refresh immediately
+- Changes to the special workspace list are picked up automatically from `config.json`
 
 Normal workspace scrolling:
 - Scroll on the normal workspace grid to move the active workspace/highlighter across all normal workspaces
@@ -486,7 +488,7 @@ Interaction behavior:
 - If no special workspaces exist yet, that special wallpaper is also used for the `+` create tile
 - `emptyWorkspaceWallpaperOverlayOpacity` controls how much tint is applied over that wallpaper
 - Use an absolute path for the image for the most reliable behavior
-- Restart Quickshell after changing `config.json`, otherwise the wallpaper path will not refresh immediately
+- Changes to the wallpaper path are picked up automatically from `config.json`
 
 Demo:
 
@@ -802,6 +804,9 @@ qs ipc -c overview call overview open
 
 # Close overview  
 qs ipc -c overview call overview close
+
+# Re-read config.json without restarting
+qs ipc -c overview call overview reload
 ```
 
 ## 🐛 Known Issues

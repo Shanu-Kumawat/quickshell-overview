@@ -166,35 +166,40 @@ Singleton {
         }
     }
 
-    Process {
-        id: loadUserConfig
-        command: [
-            "sh",
-            "-lc",
-            "cfg=\"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/overview/config.json\"; [ -r \"$cfg\" ] && cat \"$cfg\""
-        ]
-        stdout: StdioCollector {
-            id: configCollector
-            onStreamFinished: {
-                const payload = configCollector.text.trim();
-                if (!payload)
-                    return;
+    readonly property string userConfigPath: {
+        const configHome = Quickshell.env("XDG_CONFIG_HOME");
+        const home = Quickshell.env("HOME") ?? "";
+        const base = (configHome && configHome.length > 0) ? configHome : `${home}/.config`;
+        return `${base}/quickshell/overview/config.json`;
+    }
 
-                try {
-                    const parsed = JSON.parse(payload);
-                    if (typeof parsed === "object" && parsed !== null) {
-                        root.userOptions = parsed;
-                    } else {
-                        console.warn("overview: config.json must contain a JSON object; ignoring file");
-                    }
-                } catch (error) {
-                    console.warn("overview: failed to parse user config.json; using defaults", error);
-                }
+    function applyConfig(payload) {
+        const text = `${payload ?? ""}`.trim();
+        if (!text)
+            return;
+
+        try {
+            const parsed = JSON.parse(text);
+            if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+                root.userOptions = parsed;
+            } else {
+                console.warn("overview: config.json must contain a JSON object; ignoring file");
             }
+        } catch (error) {
+            console.warn("overview: failed to parse user config.json; keeping previous settings", error);
         }
     }
 
-    Component.onCompleted: {
-        loadUserConfig.running = true;
+    function reload() {
+        userConfigFile.reload();
+    }
+
+    FileView {
+        id: userConfigFile
+        path: root.userConfigPath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: userConfigFile.reload()
+        onTextChanged: root.applyConfig(userConfigFile.text())
     }
 }
