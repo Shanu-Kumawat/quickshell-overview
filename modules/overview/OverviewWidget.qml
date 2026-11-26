@@ -16,6 +16,9 @@ Item {
     readonly property var toplevels: ToplevelManager.toplevels
     readonly property int effectiveActiveWorkspaceId: Math.max(1, Math.min(100, monitor?.activeWorkspace?.id ?? 1))
     readonly property bool activeWorkspaceHasNumber: (root.monitor?.activeWorkspace?.id ?? 0) >= 1
+    // Special workspaces don't change the monitor's activeWorkspace, so read
+    // the special workspace that is currently shown from the hyprctl data.
+    readonly property string activeSpecialWorkspace: `${root.monitorData?.specialWorkspace?.name ?? ""}`
     readonly property int workspacesShown: Config.options.overview.rows * Config.options.overview.columns
     readonly property bool useWorkspaceMap: Config.options.overview.useWorkspaceMap
     readonly property var workspaceMap: Config.options.overview.workspaceMap
@@ -700,6 +703,7 @@ Item {
                 columns: root.specialWorkspaceColumns
                 showCreateTile: true
                 emptyWallpaperPath: root.specialEmptyWorkspaceWallpaperPath
+                activeWorkspace: root.activeSpecialWorkspace
                 onTileClicked: workspace => {
                     const name = workspace.slice("special:".length);
                     if (Hyprland.usingLua) {
